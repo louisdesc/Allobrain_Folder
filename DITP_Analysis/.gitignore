@@ -1,1 +1,125 @@
+# Ignore system files
 .DS_Store
+Thumbs.db
+
+# Ignore node_modules
+node_modules/
+
+# Ignore log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore build directories
+dist/
+build/
+tmp/
+out/
+coverage/
+
+# Ignore lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore environment variables
+.env
+.env.local
+.env.*.local
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Ignore OS generated files
+*.DS_Store
+*.AppleDouble
+*.LSOverride
+
+# Ignore Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+venv/
+ENV/
+env/
+
+# Ignore macOS files
+.DS_Store
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Ignore JetBrains IDEs
+.idea/
+*.iml
+*.iws
+
+# Ignore Docker
+docker-compose.yml
+docker-compose.override.yml
+docker-compose-debug.yml
+docker-compose.prod.yml
+.docker/
+*.env
+Dockerfile
+docker-compose.*
+
+# Ignore AWS Lambda related files
+.aws-sam/
+samconfig.toml
+
+# Ignore Visual Studio Code workspace files
+.vscode/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+
+# Ignore Java build files
+target/
+*.jar
+*.war
+*.ear
+
+# Ignore binary files
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+*.app
+
+# Ignore archive and compression files
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Ignore debugging files
+*.pid
+*.seed
+
+# Ignore Kubernetes related files
+*.kube/config
+.kube/
+
+# Ignore Terraform files
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Ignore all logs and temporary files
+*.log
+*.tmp
+
+# Ignore unnecessary git files
+.git/
