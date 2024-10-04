@@ -214,7 +214,7 @@ If a new category is needed:
 """
 
 PROMPT_FEEDBACK_TEMPLATE = """
-Brand description:
+Context:
 {brand_descr}
 
 {type} feedback:
@@ -235,10 +235,10 @@ CLASSIF_EXAMPLES = [
             categories=[
                 "Service et Personnel : Personnel impoli",
                 "Magasin : Temps d'attente en caisse trop élevé",
-                "Programme de fidélité : Peu avantageux",
-                "Produits : Peu de choix sur les produits : Produits végétariens",
-                "Produits : Peu de choix sur les produits : Produits sans gluten",
-                "Produits : Rupture de stock : Viandes",
+                "Programme de Fidélité : Peu avantageux",
+                "Produits : Variété des Produits : Peu de choix : Produits Végétariens",
+                "Produits : Variété des Produits : Peu de choix : Produits Sans Gluten",
+                "Produits : Rupture de Stock : Viandes",
             ],
             language="french",
         ),
@@ -246,9 +246,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback exprime une déception concernant la rupture de stock des carottes. Les catégories existantes incluent 'Produits : Rupture de stock : Viandes', mais aucune ne concerne les légumes. Il est donc approprié de créer une nouvelle catégorie pour les légumes.",
-            "new_topic": "Produits : Rupture de stock : Légumes"
-        }''',
+    "justification": "Le feedback exprime une déception concernant la rupture de stock sur les carottes. Aucune des catégories existantes ne couvre spécifiquement les légumes. Il est donc approprié de créer une nouvelle catégorie.",
+    "new_topic": "Produits : Rupture de Stock : Légumes"
+}''',
     },
     {
         "role": "user",
@@ -259,12 +259,12 @@ CLASSIF_EXAMPLES = [
             categories=[
                 "Service et Personnel : Personnel impoli",
                 "Magasin : Temps d'attente en caisse trop élevé",
-                "Programme de fidélité : Programme de fidélité non avantageux",
-                "Produits : Peu de choix sur les produits : Produits végétariens",
-                "Produits : Peu de choix sur les produits : Produits sans gluten",
-                "Produits : Rupture de stock : Viandes",
-                "Produits : Rupture de stock : Légumes",
-                "Produits : Rupture de stock",
+                "Programme de Fidélité : Peu avantageux",
+                "Produits : Variété des Produits : Peu de choix : Produits Végétariens",
+                "Produits : Variété des Produits : Peu de choix : Produits Sans Gluten",
+                "Produits : Rupture de Stock : Viandes",
+                "Produits : Rupture de Stock : Légumes",
+                "Produits : Rupture de Stock : Général",
             ],
             language="french",
         ),
@@ -272,9 +272,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback indique une absence générale de produits après 17h, ce qui correspond à un problème de rupture de stock généralisé. La catégorie 'Produits : Rupture de stock' est donc la plus appropriée.",
-            "topics": ["Produits : Rupture de stock"]
-        }''',
+    "justification": "Le feedback indique une absence générale de produits après 17h, ce qui correspond à un problème de rupture de stock généralisé. La catégorie 'Produits : Rupture de Stock : Général' est donc la plus appropriée.",
+    "topics": ["Produits : Rupture de Stock : Général"]
+}''',
     },
     {
         "role": "user",
@@ -285,9 +285,9 @@ CLASSIF_EXAMPLES = [
             categories=[
                 "Service et Personnel : Personnel impoli",
                 "Magasin : Temps d'attente en caisse trop élevé",
-                "Programme de fidélité : Programme de fidélité non avantageux",
-                "Application : Notifications : Trop nombreuses",
-                "Produits : Rupture de stock : Viandes",
+                "Programme de Fidélité : Peu avantageux",
+                "Application Mobile : Notifications : Trop nombreuses",
+                "Produits : Rupture de Stock : Viandes",
             ],
             language="french",
         ),
@@ -295,21 +295,21 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback concerne l'indisponibilité du service Click and Collect dans un magasin spécifique. Aucune des catégories existantes ne couvre ce sujet. Il est donc nécessaire de créer une nouvelle catégorie dédiée.",
-            "new_topic": "Service : Click and Collect : Indisponible dans certains magasins"
-        }''',
+    "justification": "Le feedback concerne l'indisponibilité du service Click and Collect dans un magasin spécifique. Aucune des catégories existantes ne couvre ce sujet. Il est donc nécessaire de créer une nouvelle catégorie.",
+    "new_topic": "Services en Ligne : Click and Collect : Indisponible dans certains magasins"
+}''',
     },
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from FDJ, a company of the french national lottery.",
+            brand_descr="Feedbacks are from FDJ, a company of the French national lottery.",
             type="Negative",
             feedback="Les gains sont bien trop faibles",
             categories=[
-                "Jeux : Bug sur les jeux de grattage en ligne",
-                "Application : Fonctionnalité de l'application : Impossibilité de mettre des jeux en favoris",
-                "Application : Problème de connexion sur l'application",
-                "Gains : Montant des gains pas assez élevé",
+                "Jeux : Bugs : Jeux de grattage en ligne",
+                "Application Mobile : Fonctionnalités : Impossibilité de mettre des jeux en favoris",
+                "Application Mobile : Problèmes de Connexion",
+                "Gains : Montant des Gains : Pas assez élevé",
             ],
             language="french",
         ),
@@ -317,9 +317,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback exprime une insatisfaction concernant le montant des gains. La catégorie 'Gains : Montant des gains pas assez élevé' correspond parfaitement.",
-            "topics": ["Gains : Montant des gains pas assez élevé"]
-        }''',
+    "justification": "Le feedback exprime une insatisfaction concernant le montant des gains. La catégorie 'Gains : Montant des Gains : Pas assez élevé' correspond parfaitement.",
+    "topics": ["Gains : Montant des Gains : Pas assez élevé"]
+}''',
     },
     {
         "role": "user",
@@ -328,11 +328,11 @@ CLASSIF_EXAMPLES = [
             type="Positive",
             feedback="The arabica coffee was so good it's very tasty compared to the other ones I tried",
             categories=[
-                "Service : Staff : Nice staff",
-                "Service : Rapidity of the service",
-                "Products : Food variety : Food variety for vegetarians",
-                "Products : Command options : Lots of options for personalized coffee",
-                "Application : Application easy to use",
+                "Service : Staff : Nice Staff",
+                "Service : Rapidity of Service",
+                "Products : Variety : Food Options for Vegetarians",
+                "Products : Variety : Options for Personalized Coffee",
+                "Application Mobile : Ease of Use",
             ],
             language="english",
         ),
@@ -340,9 +340,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "The feedback praises the taste and quality of the Arabica coffee. None of the existing categories address product quality or coffee taste. It's appropriate to create a new category for this.",
-            "new_topic": "Products : Quality of the products : Coffee taste and quality"
-        }''',
+    "justification": "The feedback praises the taste and quality of the Arabica coffee. None of the existing categories address product quality or coffee taste. It's appropriate to create a new category.",
+    "new_topic": "Products : Quality : Coffee Taste and Quality"
+}''',
     },
     {
         "role": "user",
@@ -351,12 +351,12 @@ CLASSIF_EXAMPLES = [
             type="Positive",
             feedback="The person who served me at the counter in Gangnam Starbucks was very sweet and smiling",
             categories=[
-                "Service : Staff : Nice staff",
-                "Service : Quality of the welcome",
-                "Service : Rapidity of the service",
-                "Products : Food variety : Food variety for vegetarians",
-                "Products : Command options : Lots of options for personalized coffee",
-                "Application : Application easy to use",
+                "Service : Staff : Nice Staff",
+                "Service : Quality of Welcome",
+                "Service : Rapidity of Service",
+                "Products : Variety : Food Options for Vegetarians",
+                "Products : Customization : Options for Personalized Coffee",
+                "Application Mobile : Ease of Use",
             ],
             language="english",
         ),
@@ -364,23 +364,23 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "The feedback highlights the positive attitude of the staff, which fits perfectly with the category 'Service : Staff : Nice staff'.",
-            "topics": ["Service : Staff : Nice staff"]
-        }''',
+    "justification": "The feedback highlights the positive attitude of the staff, which fits perfectly with the category 'Service : Staff : Nice Staff'.",
+    "topics": ["Service : Staff : Nice Staff"]
+}''',
     },
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from SNCF Connect, an application of the french national railway company.",
+            brand_descr="Feedbacks are from SNCF Connect, an application of the French national railway company.",
             type="Positive",
             feedback="I didn't wait very long to get my coffee, the staff was super sweet with me",
             categories=[
-                "Products : Quality of the coffee",
-                "Service : Staff : Nice staff",
-                "Service : Rapidity of the service",
-                "Products : Food variety : Food variety for vegetarians",
-                "Products : Command options : Lots of options for personalized coffee",
-                "Application : Application easy to use",
+                "Products : Quality : Coffee Quality",
+                "Service : Staff : Nice Staff",
+                "Service : Rapidity of Service",
+                "Products : Variety : Food Options for Vegetarians",
+                "Products : Customization : Options for Personalized Coffee",
+                "Application Mobile : Ease of Use",
             ],
             language="english",
         ),
@@ -388,21 +388,20 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "The feedback mentions both the quick service and the friendliness of the staff. The categories 'Service : Rapidity of the service' and 'Service : Staff : Nice staff' are appropriate.",
-            "topics": ["Service : Rapidity of the service", "Service : Staff : Nice staff"]
-        }''',
+    "justification": "The feedback mentions both the quick service and the friendliness of the staff. The categories 'Service : Rapidity of Service' and 'Service : Staff : Nice Staff' are appropriate.",
+    "topics": ["Service : Rapidity of Service", "Service : Staff : Nice Staff"]
+}''',
     },
-    
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from SNCF Connect, an application of the french national railway company.",
+            brand_descr="Feedbacks are from SNCF Connect, an application of the French national railway company.",
             type="Positive",
             feedback="Super, I'm very satisfied",
             categories=[
-                "Application : Ergonomy of the application : Easy to use",
-                "Site : Online purchase : Online purchase very convenient",
-                "Service after sale : Reclamation : Reclamation very well managed",
+                "Application Mobile : Ergonomics : Easy to Use",
+                "Website : Online Purchase : Very Convenient",
+                "After-Sales Service : Claims : Well Managed",
             ],
             language="english",
         ),
@@ -410,22 +409,22 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "The feedback expresses general satisfaction without specifying any particular aspect. It cannot be classified under the existing categories.",
-            "topics": []
-        }''',
+    "justification": "The feedback expresses general satisfaction without specifying any particular aspect. It cannot be classified under the existing categories.",
+    "topics": []
+}''',
     },
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from FDJ, a company of the french national lottery.",
+            brand_descr="Feedbacks are from FDJ, a company of the French national lottery.",
             type="Negative",
             feedback="Quand je me connecte avec l'authentification biométrique, l'application plante",
             categories=[
-                "Application : Notifications : Trop nombreuses",
-                "Application : Mises à jour : Fonctionnalités supprimées",
-                "Jeux : Bug sur les jeux de grattage en ligne",
-                "Application : Fonctionnalité de l'application : Impossibilité de mettre des jeux en favoris",
-                "Gains : Montant des gains pas assez élevé",
+                "Application Mobile : Notifications : Trop nombreuses",
+                "Application Mobile : Mises à Jour : Fonctionnalités supprimées",
+                "Jeux : Bugs : Jeux de grattage en ligne",
+                "Application Mobile : Fonctionnalités : Impossibilité de mettre des jeux en favoris",
+                "Gains : Montant des Gains : Pas assez élevé",
             ],
             language="french",
         ),
@@ -433,22 +432,22 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback signale un plantage de l'application lors de l'authentification biométrique. Aucune catégorie existante ne couvre ce problème spécifique. Il est donc pertinent de créer une nouvelle catégorie.",
-            "new_topic": "Application : Bug lors de l'authentification biométrique"
-        }''',
+    "justification": "Le feedback signale un plantage de l'application lors de l'authentification biométrique. Aucune catégorie existante ne couvre ce problème spécifique. Il est donc pertinent de créer une nouvelle catégorie.",
+    "new_topic": "Application Mobile : Bugs : Crash lors de l'Authentification Biométrique"
+}''',
     },
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from FDJ, a company of the french national lottery.",
+            brand_descr="Feedbacks are from FDJ, a company of the French national lottery.",
             type="Negative",
             feedback="On m'a prélevé deux fois pour la grille de loto sur le compte",
             categories=[
-                "Paiement : Problème avec le remboursement",
-                "Paiement : Montant incorrect",
-                "Remboursement : Montant incorrect",
-                "Remboursement : Délai prolongé",
-                "Application : Problème de connexion sur l'application : Bug lors de l'authentification biométrique",
+                "Paiement : Problèmes : Remboursement",
+                "Paiement : Problèmes : Montant Incorrect",
+                "Remboursement : Problèmes : Montant Incorrect",
+                "Remboursement : Problèmes : Délai Prolongé",
+                "Application Mobile : Problèmes de Connexion : Bugs lors de l'Authentification Biométrique",
             ],
             language="french",
         ),
@@ -456,9 +455,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback concerne un double prélèvement, ce qui est un problème sérieux de paiement. Les catégories existantes ne couvrent pas ce cas spécifique. Il est donc nécessaire de créer une nouvelle catégorie.",
-            "new_topic": "Paiement : Prélèvements multiples"
-        }''',
+    "justification": "Le feedback concerne un double prélèvement, ce qui est un problème sérieux de paiement. Les catégories existantes ne couvrent pas ce cas spécifique. Il est donc nécessaire de créer une nouvelle catégorie.",
+    "new_topic": "Paiement : Problèmes : Prélèvements Multiples"
+}''',
     },
     {
         "role": "user",
@@ -467,11 +466,11 @@ CLASSIF_EXAMPLES = [
             type="Negative",
             feedback="je n'aime pas la nouvelle crème solaire...",
             categories=[
-                "Produits : Qualité des produits : Crème solaire ne s'étale pas bien",
-                "Produits : Qualité des produits : Crème solaire de mauvaise qualité",
-                "Produits : Qualité des produits : Crème solaire à l'odeur désagréable",
-                "Produits : Variété des produits : Peu de choix sur les savons pour le corps",
-                "Produits : Variété des produits : Peu de choix sur les crèmes solaires",
+                "Produits : Qualité : Crème Solaire : Ne s'étale pas bien",
+                "Produits : Qualité : Crème Solaire : Mauvaise Qualité",
+                "Produits : Qualité : Crème Solaire : Odeur Désagréable",
+                "Produits : Variété : Peu de choix : Savons pour le Corps",
+                "Produits : Variété : Peu de choix : Crèmes Solaires",
             ],
             language="french",
         ),
@@ -479,9 +478,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback exprime une insatisfaction générale vis-à-vis de la nouvelle crème solaire sans préciser la raison. Les catégories existantes sont trop spécifiques. Il est donc approprié de créer une nouvelle catégorie plus générale.",
-            "new_topic": "Produits : Insatisfaction générale : Nouvelle crème solaire"
-        }''',
+    "justification": "Le feedback exprime une insatisfaction générale vis-à-vis de la nouvelle crème solaire sans préciser la raison. Les catégories existantes sont trop spécifiques. Il est donc approprié de créer une nouvelle catégorie plus générale.",
+    "new_topic": "Produits : Insatisfaction Générale : Nouvelle Crème Solaire"
+}''',
     },
     {
         "role": "user",
@@ -490,12 +489,12 @@ CLASSIF_EXAMPLES = [
             type="Negative",
             feedback="c'est chère",
             categories=[
-                "Produits : Qualité des produits : Crème solaire ne s'étale pas bien",
-                "Produits : Qualité des produits : Crème solaire de mauvaise qualité",
-                "Produits : Qualité des produits : Crème solaire à l'odeur désagréable",
-                "Produits : Variété des produits : Peu de choix sur les savons pour le corps",
-                "Produits : Variété des produits : Peu de choix sur les crèmes solaires",
-                "Prix : Rapport qualité-prix : Peu de quantité de produit par rapport au prix",
+                "Produits : Qualité : Crème Solaire : Ne s'étale pas bien",
+                "Produits : Qualité : Crème Solaire : Mauvaise Qualité",
+                "Produits : Qualité : Crème Solaire : Odeur Désagréable",
+                "Produits : Variété : Peu de choix : Savons pour le Corps",
+                "Produits : Variété : Peu de choix : Crèmes Solaires",
+                "Prix : Rapport Qualité-Prix : Quantité Insuffisante par rapport au Prix",
             ],
             language="french",
         ),
@@ -503,11 +502,12 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-            "justification": "Le feedback mentionne que les produits sont chers. Bien qu'il y ait une catégorie sur le rapport qualité-prix, aucune ne traite spécifiquement du prix élevé. Il est donc pertinent de créer une nouvelle catégorie.",
-            "new_topic": "Prix : Prix trop élevés"
-        }''',
+    "justification": "Le feedback mentionne que les produits sont chers. Bien qu'il y ait une catégorie sur le rapport qualité-prix, aucune ne traite spécifiquement du prix élevé. Il est donc pertinent de créer une nouvelle catégorie.",
+    "new_topic": "Prix : Prix Trop Élevés"
+}''',
     },
 ]
+
 
 
 PROMPT_DUPLICATES = """    
