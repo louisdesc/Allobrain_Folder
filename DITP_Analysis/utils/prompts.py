@@ -246,9 +246,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback exprime une déception concernant la rupture de stock des carottes. Les catégories existantes incluent 'Produits : Rupture de stock : Viandes', mais aucune ne concerne les légumes. Il est donc approprié de créer une nouvelle catégorie pour les légumes.",
-    "new_topic": "Produits : Rupture de stock : Légumes"
-}''',
+            "justification": "Le feedback exprime une déception concernant la rupture de stock des carottes. Les catégories existantes incluent 'Produits : Rupture de stock : Viandes', mais aucune ne concerne les légumes. Il est donc approprié de créer une nouvelle catégorie pour les légumes.",
+            "new_topic": "Produits : Rupture de stock : Légumes"
+        }''',
     },
     {
         "role": "user",
@@ -272,9 +272,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback indique une absence générale de produits après 17h, ce qui correspond à un problème de rupture de stock généralisé. La catégorie 'Produits : Rupture de stock' est donc la plus appropriée.",
-    "topics": ["Produits : Rupture de stock"]
-}''',
+            "justification": "Le feedback indique une absence générale de produits après 17h, ce qui correspond à un problème de rupture de stock généralisé. La catégorie 'Produits : Rupture de stock' est donc la plus appropriée.",
+            "topics": ["Produits : Rupture de stock"]
+        }''',
     },
     {
         "role": "user",
@@ -295,9 +295,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback concerne l'indisponibilité du service Click and Collect dans un magasin spécifique. Aucune des catégories existantes ne couvre ce sujet. Il est donc nécessaire de créer une nouvelle catégorie dédiée.",
-    "new_topic": "Service : Click and Collect : Indisponible dans certains magasins"
-}''',
+            "justification": "Le feedback concerne l'indisponibilité du service Click and Collect dans un magasin spécifique. Aucune des catégories existantes ne couvre ce sujet. Il est donc nécessaire de créer une nouvelle catégorie dédiée.",
+            "new_topic": "Service : Click and Collect : Indisponible dans certains magasins"
+        }''',
     },
     {
         "role": "user",
@@ -317,9 +317,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback exprime une insatisfaction concernant le montant des gains. La catégorie 'Gains : Montant des gains pas assez élevé' correspond parfaitement.",
-    "topics": ["Gains : Montant des gains pas assez élevé"]
-}''',
+            "justification": "Le feedback exprime une insatisfaction concernant le montant des gains. La catégorie 'Gains : Montant des gains pas assez élevé' correspond parfaitement.",
+            "topics": ["Gains : Montant des gains pas assez élevé"]
+        }''',
     },
     {
         "role": "user",
@@ -340,9 +340,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "The feedback praises the taste and quality of the Arabica coffee. None of the existing categories address product quality or coffee taste. It's appropriate to create a new category for this.",
-    "new_topic": "Products : Quality of the products : Coffee taste and quality"
-}''',
+            "justification": "The feedback praises the taste and quality of the Arabica coffee. None of the existing categories address product quality or coffee taste. It's appropriate to create a new category for this.",
+            "new_topic": "Products : Quality of the products : Coffee taste and quality"
+        }''',
     },
     {
         "role": "user",
@@ -410,9 +410,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "The feedback expresses general satisfaction without specifying any particular aspect. It cannot be classified under the existing categories.",
-    "topics": []
-}''',
+            "justification": "The feedback expresses general satisfaction without specifying any particular aspect. It cannot be classified under the existing categories.",
+            "topics": []
+        }''',
     },
     {
         "role": "user",
@@ -433,9 +433,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback signale un plantage de l'application lors de l'authentification biométrique. Aucune catégorie existante ne couvre ce problème spécifique. Il est donc pertinent de créer une nouvelle catégorie.",
-    "new_topic": "Application : Bug lors de l'authentification biométrique"
-}''',
+            "justification": "Le feedback signale un plantage de l'application lors de l'authentification biométrique. Aucune catégorie existante ne couvre ce problème spécifique. Il est donc pertinent de créer une nouvelle catégorie.",
+            "new_topic": "Application : Bug lors de l'authentification biométrique"
+        }''',
     },
     {
         "role": "user",
@@ -456,9 +456,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback concerne un double prélèvement, ce qui est un problème sérieux de paiement. Les catégories existantes ne couvrent pas ce cas spécifique. Il est donc nécessaire de créer une nouvelle catégorie.",
-    "new_topic": "Paiement : Prélèvements multiples"
-}''',
+            "justification": "Le feedback concerne un double prélèvement, ce qui est un problème sérieux de paiement. Les catégories existantes ne couvrent pas ce cas spécifique. Il est donc nécessaire de créer une nouvelle catégorie.",
+            "new_topic": "Paiement : Prélèvements multiples"
+        }''',
     },
     {
         "role": "user",
@@ -479,12 +479,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback exprime une insatisfaction générale vis-à-vis de la nouvelle crème solaire sans préciser la raison. Les catégories existantes sont trop spécifiques. Il est donc approprié de créer une nouvelle catégorie plus générale.",
-    "new_topic": "Produits : Insatisfaction générale : Nouvelle crème solaire"
-}''',
+            "justification": "Le feedback exprime une insatisfaction générale vis-à-vis de la nouvelle crème solaire sans préciser la raison. Les catégories existantes sont trop spécifiques. Il est donc approprié de créer une nouvelle catégorie plus générale.",
+            "new_topic": "Produits : Insatisfaction générale : Nouvelle crème solaire"
+        }''',
     },
-
-    # Example 12
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
@@ -505,9 +503,9 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "Le feedback mentionne que les produits sont chers. Bien qu'il y ait une catégorie sur le rapport qualité-prix, aucune ne traite spécifiquement du prix élevé. Il est donc pertinent de créer une nouvelle catégorie.",
-    "new_topic": "Prix : Prix trop élevés"
-}''',
+            "justification": "Le feedback mentionne que les produits sont chers. Bien qu'il y ait une catégorie sur le rapport qualité-prix, aucune ne traite spécifiquement du prix élevé. Il est donc pertinent de créer une nouvelle catégorie.",
+            "new_topic": "Prix : Prix trop élevés"
+        }''',
     },
 ]
 
