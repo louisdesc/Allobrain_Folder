@@ -120,9 +120,7 @@ def process_extractions(extractions_list: List[Dict], sentence_parts: Dict[str, 
     return results
 
 
-def generate_extraction_results(
-    text_segments: List[str], brand_context: str, language: str, model: str = "gpt-4o-mini"
-) -> List[Dict]:
+def generate_extraction_results(text_segments: List[str], brand_context: str, language: str, model: str = "gpt-4o-mini") -> List[Dict]:
     """
     Generates structured extraction results from the provided text segments using a language model.
 
@@ -164,9 +162,7 @@ def generate_extraction_results(
         return []
 
 
-def extract_information_from_text(
-    input_text: str, request_id: str, brand_description: str, language: str, model: str = "gpt-4o-mini"
-):
+def extract_information_from_text(input_text: str, request_id: str, brand_description: str, language: str, model: str = "gpt-4o-mini"):
     """
     Extracts information from the provided text by splitting it into parts, generating extractions,
     and organizing the results into a structured format.
