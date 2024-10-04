@@ -120,32 +120,47 @@ def process_extractions(extractions_list: List[Dict], sentence_parts: Dict[str, 
     return results
 
 
-def generate_extractions(
-    text_parts: List[str], brand_descr: str, language: str, model: str = "gpt-4o-mini"
+def generate_extraction_results(
+    text_segments: List[str], brand_context: str, language: str, model: str = "gpt-4o-mini"
 ) -> List[Dict]:
-    # add hash to each part
-    text_parts_with_hash = create_feedback_with_ids(text_parts)
-    text = json.dumps(text_parts_with_hash, ensure_ascii=False, indent=2)
+    """
+    Generates structured extraction results from the provided text segments using a language model.
+
+    Args:
+        text_segments (List[str]): The segments of text to analyze for extractions.
+        brand_description (str): A description of the brand for contextual understanding.
+        language (str): The language code for the extraction process (e.g., 'english', 'french').
+        model (str): The model to use for extraction (default is 'gpt-4o-mini').
+
+    Returns:
+        List[Dict]: A list of dictionaries containing the generated extraction results.
+    """
+    text_segments_with_ids = create_feedback_with_ids(text_segments)
+    text_payload = json.dumps(text_segments_with_ids, ensure_ascii=False, indent=2)
     messages = [
         {
             "role": "user",
             "content": PROMPT_EXTRACTIONS.format(
-                text=text, language=language, brand_descr=brand_descr
+                text=text_payload, language=language, brand_context=brand_context
             ),
         },
     ]
-    print(messages)
-    generated_extractions = ""
     try:
-        # request the model to generate extractions
-        generated_extractions = request_llm(messages, model=model, response_format={ "type": "json_object" })
-
-        generated_extractions = json.loads(generated_extractions)
+        # Request the model to generate extractions
+        generated_extraction_results = request_llm(messages, model=model, response_format={"type": "json_object"})
+        
+        generated_extraction_results = json.loads(generated_extraction_results)
         # Process the extractions
-        return process_extractions(generated_extractions['feedback_extraction'], {part['id']: part['content'] for part in text_parts_with_hash['feedback']})
+        return process_extractions(generated_extraction_results['feedback_extraction'], {part['id']: part['content'] for part in text_segments_with_ids['feedback']})
 
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding error: {e}")
+        return []
+    except KeyError as e:
+        print(f"Missing key in generated extractions: {e}")
+        return []
     except Exception as e:
-        print("[extract_information_from_text()]", generated_extractions, e)
+        print(f"An unexpected error occurred: {e}")
         return []
 
 
@@ -171,7 +186,7 @@ def extract_information_from_text(
     try:
         # Split the text into parts depending on the delimiters
         text_parts = split_text_into_parts(input_text)
-        extractions = generate_extractions(text_parts, brand_description, language, model)
+        extractions = generate_extraction_results(text_parts, brand_description, language, model)
 
         # Filter out empty text parts
         text_parts = [part.strip() for part in text_parts if part.strip()]
