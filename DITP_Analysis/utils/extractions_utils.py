@@ -9,38 +9,35 @@ from utils.all_utils import generate_id, evaluate_object
 from utils.database import save_extractions_to_mongo
 
 
-def split_text_parts(text: str) -> list[str]:
+def split_text_into_parts(text: str) -> list[str]:
     """
-    Split the text into parts, where each part is a sentence.
-    Following delimiters are concatenated to the previous sentence.
+    Splits the input text into parts based on specified delimiters.
+    Delimiters include: [".", ",", ";", "\n", "!", "?"]
+    Each part is trimmed of leading and trailing whitespace.
 
-    Delimiters: [".", ",", ";", "\n", "!", "?"]
+    Args:
+        text (str): The input text to be split into parts.
 
-    Returns a list of strings, each representing a part of the text.
+    Returns:
+        list[str]: A list of text parts extracted from the input text.
     """
-    delims = [".", ",", ";", "\n", "!", "?"]
+    delimiters = {".", ",", ";", "\n", "!", "?"}  # Use a set for faster membership testing
 
-    all_text_parts, cur_part, i = [], "", 0
+    text_parts = []
+    current_part = ""
 
-    while i < len(text):
-        # character
-        if text[i] not in delims:
-            cur_part += text[i]
-            i += 1
-
+    for character in text:  # Iterate directly over the text
+        if character not in delimiters:
+            current_part += character
         else:
-            # while it's delim, we concat to the previous sentence
-            while i < len(text) and text[i] in delims:
-                cur_part += text[i]
-                i += 1
+            if current_part:  # Only append if current_part is not empty
+                text_parts.append(current_part.strip())  # Strip whitespace
+                current_part = ""
 
-            all_text_parts.append(cur_part)
-            cur_part = ""
+    if current_part:  # Add the last part if it exists
+        text_parts.append(current_part.strip())
 
-    # Add the last part
-    all_text_parts.append(cur_part)
-
-    return all_text_parts
+    return text_parts
 
 
 def generate_hash_for_text_parts(splitted_text: list[str]) -> dict:
@@ -174,7 +171,7 @@ def extract_information_from_text(
     text_parts = []
     try:
         # Split the text into parts depending on the delimiters
-        text_parts = split_text_parts(input_text)
+        text_parts = split_text_into_parts(input_text)
         extractions = generate_extractions(text_parts, brand_description, language, model)
 
         # Filter out empty text parts

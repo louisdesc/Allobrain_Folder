@@ -1,4 +1,4 @@
-def split_text_parts(text: str) -> list[str]:
+def split_text_into_parts(text: str) -> list[str]:
     """
     Split the text into parts, where each part is a sentence.
     Following delimiters are concatenated to the previous sentence.
@@ -57,6 +57,6 @@ def generate_hash_for_text_parts(splitted_text: list[str]) -> list[dict]:
 
 # Test the function
 text = "Bonjour, Appli très bien faite et rapide, le seul problème: le délais qui s'accordent pour faire les virements en cas de gains...\nPerso, j'attends 200€ depuis au moins 5 jours et toujours aucune trace de paiement de leur part!! Pour un jeu d'argent je trouve les délais insupportables. En plus l'application serait encore mieux si elle était en français.\nBien cordialement\n"
-splitted_text = split_text_parts(text)
+splitted_text = split_text_into_parts(text)
 transformed_text = generate_hash_for_text_parts(splitted_text)
 print(json.dumps(transformed_text, ensure_ascii=False, indent=2))
