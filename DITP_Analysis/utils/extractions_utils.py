@@ -262,8 +262,8 @@ def process_extractions_in_parallel(
     res = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(extract_information_from_text, x.get('text'), x.get('_id'), x.get('brand_context'), language, model)
-            for x in extraction_requests
+            executor.submit(extract_information_from_text, x['text'], x['_id'], x['brand_context'], language, model)
+            for _, x in extraction_requests.iterrows()
         ]
 
         chunk_size = 20
