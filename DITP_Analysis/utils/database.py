@@ -64,12 +64,12 @@ def get_feedbacks_with_extractions(
  - - - - - - - - - - - - - - - - - """
 
 
-def get_brand_description(brand: str) -> str:
-    """Get the brand description from the mongo db depending on the brand"""
-    infos = brand_infos_collection.find_one({"brand": brand})
-    if infos:
-        return infos.get("description", "")
-    return ""
+# def get_brand_description(brand: str) -> str:
+#     """Get the brand description from the mongo db depending on the brand"""
+#     infos = brand_infos_collection.find_one({"brand": brand})
+#     if infos:
+#         return infos.get("description", "")
+#     return ""
 
 
 def get_all_classification_schemes(
