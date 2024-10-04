@@ -147,18 +147,32 @@ def check_and_clean_duplicates_topics(
  - - - - - - - - - - - - - - - - - """
 
 
-def get_closest_n_intents(feedback: str, categories: List[str], categories_embeddings: List, n: int = 5,) -> List:
+def find_closest_elementary_subjects(extraction_text: str, subject_names: List[str], subject_embeddings: List[List[float]], top_n: int = 5) -> List[str]:
     """
-        Get the n closest elementary subjects to a extraction/text
+    Retrieve the top_n closest elementary subjects to a given extraction text based on cosine similarity of their embeddings.
+
+    Parameters:
+    - extraction_text (str): The extraction text for which we want to find the closest elementary subjects.
+    - subject_names (List[str]): A list of elementary subject names corresponding to the embeddings.
+    - subject_embeddings (List[List[float]]): A list of embeddings for the elementary subjects, where each embedding is a list of floats.
+    - top_n (int): The number of closest subjects to return. Defaults to 5.
+
+    Returns:
+    - List[str]: A list of the top_n closest elementary subject names. If no subjects are provided, returns an empty list.
     """
-    if len(categories) == 0:
+    if not subject_names:
         return []
 
-    feedback_embedding = get_embedding([feedback], model="text-embedding-3-large")[0]
-    distances = distance.cdist([feedback_embedding], categories_embeddings, "cosine")[0]
-    closest_categories = [categories[i] for i in distances.argsort()[:n]]
+    try:
+        extraction_embedding = get_embedding([extraction_text], model="text-embedding-3-large")[0]
+        cosine_distances = distance.cdist([extraction_embedding], subject_embeddings, "cosine")[0]
+        closest_subjects = [subject_names[i] for i in cosine_distances.argsort()[:top_n]]
 
-    return closest_categories
+        return closest_subjects
+    except Exception as e:
+        print(f"Error in find_closest_elementary_subjects: {e}")
+        return []
+
 
 def update_mapping_for_one_elementary_subject(
     brand: str,
@@ -183,82 +197,6 @@ def update_mapping_for_one_elementary_subject(
 
     return mappings
 
-
-def classify_one_extraction(extraction: str, extraction_type: str, language: str, brand: str, brand_descr: str, model: str, update_mongo: bool = True) -> Dict:
-    """
-    Classify one extraction with already existing elementary subjects, if do not exist push new ones to mongo
-    """
-
-    # get all elementary subjects corresponding to the brand and a type (positive/negative)
-    categories = get_elementary_subjects(brand, extraction_type)
-
-    all_categories = [c["elementary_subject"] for c in categories]
-    categories_embeddings = [c["embeddings"] for c in categories]
-
-    # get closest categories depending on embeddings similarity
-    closest_categories = get_closest_n_intents(
-        extraction,
-        all_categories,
-        categories_embeddings,
-        n=5,
-    )
-
-    messages = (
-        [{"role": "user", "content": PROMPT_CLASSIF}]
-        + CLASSIF_EXAMPLES
-        + [
-            {
-                "role": "user",
-                "content": PROMPT_FEEDBACK_TEMPLATE.format(
-                    brand_descr=brand_descr,
-                    type=extraction_type.capitalize(),
-                    feedback=extraction,
-                    categories=closest_categories,
-                    language=language,
-                ),
-            }
-        ]
-    )
-
-    try:
-        res = request_llm(messages, model=model)
-        res = eval(res)
-
-        if "new_topic" in res:
-            new_topic = res.get("new_topic")
-            # get the embedding of the new topic
-            embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
-
-            # if it's a new subject and `update_mongo` is True : we push it to Mongo
-            if update_mongo:
-                # find corresponding topics from the classification schemes
-                mappings = update_mapping_for_one_elementary_subject(brand, new_topic)
-                # push the new elementary subject to mongo
-                push_new_elementary_subject_to_mongo(
-                    brand,
-                    extraction_type,
-                    new_topic,
-                    embedding,
-                    mappings,
-                )
-
-            topics = [new_topic]
-            is_new_topic = True
-        else:
-            topics = res.get("topics", [])
-            is_new_topic = False
-
-        return {
-            "topics": topics,
-            "justification": res.get("justification"),
-            "is_new_topic": is_new_topic,
-        }
-
-    except Exception as e:
-        return {
-            "topics": [],
-            "error": str(e),
-        }
 
 
 
@@ -386,6 +324,84 @@ def update_splitted_analysis(feedback_id: ObjectId, extractions: List, splitted_
 
     return splitted_analysis
 
+def classify_one_extraction(extraction: str, extraction_type: str, language: str, brand: str, brand_descr: str, model: str, update_mongo: bool = True) -> Dict:
+    """
+    Classify one extraction with already existing elementary subjects, if do not exist push new ones to mongo
+    """
+
+    # get all elementary subjects corresponding to the brand and a type (positive/negative)
+    categories = get_elementary_subjects(brand, extraction_type)
+
+    all_categories = [c["elementary_subject"] for c in categories]
+    categories_embeddings = [c["embeddings"] for c in categories]
+
+    # get closest categories depending on embeddings similarity
+    closest_categories = find_closest_elementary_subjects(
+        extraction,
+        all_categories,
+        categories_embeddings,
+        top_n=5,
+    )
+
+
+    messages = (
+        [{"role": "user", "content": PROMPT_CLASSIF}]
+        + CLASSIF_EXAMPLES
+        + [
+            {
+                "role": "user",
+                "content": PROMPT_FEEDBACK_TEMPLATE.format(
+                    brand_descr=brand_descr,
+                    type=extraction_type.capitalize(),
+                    feedback=extraction,
+                    categories=closest_categories,
+                    language=language,
+                ),
+            }
+        ]
+    )
+
+    try:
+        res = request_llm(messages, model=model)
+        res = eval(res)
+
+        if "new_topic" in res:
+            new_topic = res.get("new_topic")
+            # get the embedding of the new topic
+            embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
+
+            # if it's a new subject and `update_mongo` is True : we push it to Mongo
+            if update_mongo:
+                # find corresponding topics from the classification schemes
+                mappings = update_mapping_for_one_elementary_subject(brand, new_topic)
+                # push the new elementary subject to mongo
+                push_new_elementary_subject_to_mongo(
+                    brand,
+                    extraction_type,
+                    new_topic,
+                    embedding,
+                    mappings,
+                )
+
+            topics = [new_topic]
+            is_new_topic = True
+        else:
+            topics = res.get("topics", [])
+            is_new_topic = False
+
+        return {
+            "topics": topics,
+            "justification": res.get("justification"),
+            "is_new_topic": is_new_topic,
+        }
+
+    except Exception as e:
+        return {
+            "topics": [],
+            "error": str(e),
+        }
+
+
 
 def classify_one_feedback(
     feedback_id: str,
@@ -419,7 +435,7 @@ def classify_one_feedback(
             model,
             update_mongo,
         )
-
+        print(classif)
         # if there is a new topic, then we need to check duplicates
         if classif.get("is_new_topic"):
             need_to_check_duplicates.add(extraction_type)
@@ -440,45 +456,20 @@ def classify_one_feedback(
         )
 
     # TODO: Remove
-    print("========================")
-    print("========================")
+    print("____________________________")
+    print("____________________________")
     for entry in extractions:
         print(f"Sentence : {entry['text']}")
         print(f"Extraction : {entry['extraction']}")
         if 'elementary_subjects' in entry:
             print(f"Elementary Subjects : {entry['elementary_subjects']}")
-        print("===========")
+        print("____________")
     # TODO: Remove above
 
     return {
         "id" : feedback_id,
         "extractions": extractions
     }
-
-
-def compute_sentiment(text: str, brand_description: str, model: str) -> str:
-    """
-    Compute the sentiment of a text
-    """
-    messages = [
-        {
-            "role": "user",
-            "content": PROMPT_SENTIMENT.format(
-                brand_description=brand_description, text=text
-            ),
-        },
-    ]
-
-    try:
-        res = request_llm(messages, model=model)
-        res = eval(res)
-
-        return res.get("sentiment", "NEUTRAL")
-
-    except Exception as e:
-        return "NEUTRAL"
-
-
 
 def run_analysis_full_parallel(
         texts_with_ids: List[Dict],
