@@ -149,21 +149,33 @@ def generate_extractions(
         return process_extractions(generated_extractions['feedback_extraction'], {part['id']: part['content'] for part in text_parts_with_hash['feedback']})
 
     except Exception as e:
-        print("[get_extractions()]", generated_extractions, e)
+        print("[extract_information_from_text()]", generated_extractions, e)
         return []
 
 
-def get_extractions(
-    text: str, id: str, brand_descr: str, language: str, model: str = "gpt-4o-mini"
+def extract_information_from_text(
+    input_text: str, request_id: str, brand_description: str, language: str, model: str = "gpt-4o-mini"
 ):
     """
-    Get the extractions for the text
+    Extracts information from the provided text by splitting it into parts, generating extractions,
+    and organizing the results into a structured format.
+
+    Args:
+        input_text (str): The text from which to extract information.
+        request_id (str): The unique identifier for the extraction request.
+        brand_description (str): A description of the brand associated with the text.
+        language (str): The language code for the extraction process (e.g., 'english', 'french').
+        model (str): The model to use for extraction (default is 'gpt-4o-mini').
+
+    Returns:
+        dict: A dictionary containing the request ID, the structured analysis of the text,
+              and the generated extractions.
     """
     text_parts = []
     try:
-        # split the text into parts depending on the delimiters
-        text_parts = split_text_parts(text)
-        extractions = generate_extractions(text_parts, brand_descr, language, model)
+        # Split the text into parts depending on the delimiters
+        text_parts = split_text_parts(input_text)
+        extractions = generate_extractions(text_parts, brand_description, language, model)
 
         # Filter out empty text parts
         text_parts = [part.strip() for part in text_parts if part.strip()]
@@ -176,15 +188,15 @@ def get_extractions(
         splitted_analysis = [part for part in splitted_analysis if part.get('text')]
 
         return {
-            "id": id,
+            "id": request_id,
             "splitted_analysis": splitted_analysis,
             "extraction": extractions,
         }
 
     except Exception as e:
-        print(text, id)
-        print("[get_extractions()]", e)
-        return {"id": id, "splitted_analysis": [], "extraction": []}
+        print(input_text, request_id)
+        print("[extract_information_from_text()]", e)
+        return {"id": request_id, "splitted_analysis": [], "extraction": []}
 
 
 def add_extractions_to_splitted_analysis(text_parts: List[str], extractions: List[Dict]) -> List[Dict]:
@@ -236,7 +248,7 @@ def process_extractions_in_parallel(
     res = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(get_extractions, x.get('text'), x.get('_id'), x.get('brand_context'), language, model)
+            executor.submit(extract_information_from_text, x.get('text'), x.get('_id'), x.get('brand_context'), language, model)
             for x in extraction_requests
         ]
 
