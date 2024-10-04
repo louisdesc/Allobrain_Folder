@@ -40,25 +40,24 @@ def split_text_into_parts(text: str) -> list[str]:
     return text_parts
 
 
-def generate_hash_for_text_parts(splitted_text: list[str]) -> dict:
+def create_feedback_with_ids(text_parts: list[str]) -> dict[str, list[dict]]:
     """
-    Transform the splitted text into a dictionary with a feedback list containing unique IDs for each part.
+    Creates a feedback dictionary containing unique IDs and content for each non-empty text part.
 
     Args:
-    splitted_text (list[str]): List of text parts.
+    text_parts (list[str]): A list of text segments from which to generate feedback.
 
     Returns:
-    dict: Dictionary containing a feedback list with IDs and content for each part.
+    dict: A dictionary with a key 'feedback' that maps to a list of dictionaries,
+          each containing 'id' and 'content' for the corresponding text part.
     """
-    result = {"feedback": []}  # Initialize with feedback key
-    for part in splitted_text:
-        part = part.strip()
-        if part:  # Only add non-empty parts
-            result["feedback"].append({
-                "id": generate_id(part),
-                "content": part
-            })
-    return result
+    # Use a list comprehension for cleaner code
+    feedback = [
+        {"id": generate_id(part.strip()), "content": part.strip()}
+        for part in text_parts if part.strip()  # Only add non-empty parts
+    ]
+    
+    return {"feedback": feedback}
 
 
 def process_extractions(extractions_list: List[Dict], sentence_parts: Dict[str, str]) -> List[Dict[str, str]]:
@@ -125,7 +124,7 @@ def generate_extractions(
     text_parts: List[str], brand_descr: str, language: str, model: str = "gpt-4o-mini"
 ) -> List[Dict]:
     # add hash to each part
-    text_parts_with_hash = generate_hash_for_text_parts(text_parts)
+    text_parts_with_hash = create_feedback_with_ids(text_parts)
     text = json.dumps(text_parts_with_hash, ensure_ascii=False, indent=2)
     messages = [
         {
