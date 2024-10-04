@@ -26,7 +26,6 @@ from utils.prompts import (
     CLASSIF_EXAMPLES,
     PROMPT_FEEDBACK_TEMPLATE,
     PROMPT_DUPLICATES,
-    PROMPT_SENTIMENT,
 )
 
 

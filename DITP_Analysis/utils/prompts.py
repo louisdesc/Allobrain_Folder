@@ -593,21 +593,6 @@ Subject: "Qualité de l'accueil"
 
 """
 
-PROMPT_SENTIMENT = """
-This is a feedback about {brand_description}
 
-{text}
-
-Your task is to classify the sentiment of the feedback in one of the following categories:
-- POSITIVE
-- NEGATIVE
-- NEUTRAL
-- MIXED
-
-Output format:
-{{
-    "sentiment": "<sentiment>"
-}}
-"""
 
 
