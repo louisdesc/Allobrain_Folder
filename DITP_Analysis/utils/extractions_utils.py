@@ -210,33 +210,53 @@ def add_extractions_to_splitted_analysis(text_parts: List[str], extractions: Lis
 
 
 
-def run_extractions_full_parallel(
-        texts_with_ids: pd.DataFrame,
-        brand: str,
+def process_extractions_in_parallel(
+        extraction_requests: pd.DataFrame,
+        brand_name: str,
         language: str,
         model='gpt-4o-mini',
         save_to_mongo=False
 ):
+    """
+    Processes extraction requests in parallel using a thread pool.
+
+    Args:
+        extraction_requests (pd.DataFrame): A DataFrame containing extraction requests with columns:
+            - 'text': The text to extract information from.
+            - '_id': The unique identifier for the request.
+            - 'brand_context': The brand context for the extraction.
+        brand_name (str): The name of the brand associated with the extractions.
+        language (str): The language for the extraction process (e.g., 'english', 'french').
+        model (str): The model to use for extraction (default is 'gpt-4o-mini').
+        save_to_mongo (bool): Flag indicating whether to save the results to MongoDB.
+
+    Returns:
+        List[Dict]: A list of dictionaries containing the results of the extractions.
+    """
     res = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(get_extractions, x.get('text'), x.get('_id'), x.get('brand_context'), language, model) for x in texts_with_ids]
+        futures = [
+            executor.submit(get_extractions, x.get('text'), x.get('_id'), x.get('brand_context'), language, model)
+            for x in extraction_requests
+        ]
 
         chunk_size = 20
         for i in tqdm(range(0, len(futures), chunk_size), desc="Processing chunks"):
-            completed_futures, _ = concurrent.futures.wait(futures[i:i+chunk_size], return_when=concurrent.futures.ALL_COMPLETED)
+            completed_futures, _ = concurrent.futures.wait(futures[i:i + chunk_size], return_when=concurrent.futures.ALL_COMPLETED)
 
             for future in completed_futures:
-                prediction = future.result()
-                res.append(prediction)
+                try:
+                    prediction = future.result()
+                    res.append(prediction)
 
-                if save_to_mongo:
-                    save_extractions_to_mongo(
-                        extractions_with_ids=prediction,
-                        brand=brand,
-                        extractions_column='extractions',
-                        splitted_analysis_column='splitted_analysis_v2',
-                    )
+                    if save_to_mongo:
+                        save_extractions_to_mongo(
+                            extractions_with_ids=prediction,
+                            brand=brand_name,
+                            extractions_column='extractions',
+                            splitted_analysis_column='splitted_analysis_v2',
+                        )
+                except Exception as e:
+                    print(f"Error processing future: {e}")  # Consider using logging instead of print
 
-            
-    
     return res
