@@ -1,5 +1,5 @@
 PROMPT_EXTRACTIONS = """
-Task: You will receive a user feedback in {language}. {brand_descr}
+Task: You will receive a user feedback in {language}. {brand_context}
 The feeback will be split at punctuation marks and line breaks. Your goal is to convert the feedback into a structured JSON format by classifying each part of the feedback according to sentiment, subject, and associated ID. 
 Follow the instructions below to accurately interpret the feedback:
 

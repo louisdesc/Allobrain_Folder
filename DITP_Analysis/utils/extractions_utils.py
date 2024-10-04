@@ -126,7 +126,7 @@ def generate_extraction_results(text_segments: List[str], brand_context: str, la
 
     Args:
         text_segments (List[str]): The segments of text to analyze for extractions.
-        brand_description (str): A description of the brand for contextual understanding.
+        brand_context (str): A context of the brand for contextual understanding.
         language (str): The language code for the extraction process (e.g., 'english', 'french').
         model (str): The model to use for extraction (default is 'gpt-4o-mini').
 
@@ -162,7 +162,7 @@ def generate_extraction_results(text_segments: List[str], brand_context: str, la
         return []
 
 
-def extract_information_from_text(input_text: str, request_id: str, brand_description: str, language: str, model: str = "gpt-4o-mini"):
+def extract_information_from_text(input_text: str, request_id: str, brand_context: str, language: str, model: str = "gpt-4o-mini"):
     """
     Extracts information from the provided text by splitting it into parts, generating extractions,
     and organizing the results into a structured format.
@@ -170,7 +170,7 @@ def extract_information_from_text(input_text: str, request_id: str, brand_descri
     Args:
         input_text (str): The text from which to extract information.
         request_id (str): The unique identifier for the extraction request.
-        brand_description (str): A description of the brand associated with the text.
+        brand_context (str): A context of the brand associated with the text.
         language (str): The language code for the extraction process (e.g., 'english', 'french').
         model (str): The model to use for extraction (default is 'gpt-4o-mini').
 
@@ -182,7 +182,7 @@ def extract_information_from_text(input_text: str, request_id: str, brand_descri
     try:
         # Split the text into parts depending on the delimiters
         text_parts = split_text_into_parts(input_text)
-        extractions = generate_extraction_results(text_parts, brand_description, language, model)
+        extractions = generate_extraction_results(text_parts, brand_context, language, model)
 
         # Filter out empty text parts
         text_parts = [part.strip() for part in text_parts if part.strip()]
@@ -200,6 +200,13 @@ def extract_information_from_text(input_text: str, request_id: str, brand_descri
             "extraction": extractions,
         }
 
+    except KeyError as e:
+        if str(e) == "'brand_descr'":
+            print(f"[extract_information_from_text()] Missing key 'brand_descr': {e}")  # Handle missing key
+            return {"id": request_id, "splitted_analysis": [], "extraction": []}
+        else:
+            print(f"[extract_information_from_text()] Missing key: {e}")  # Handle other missing keys
+            return {"id": request_id, "splitted_analysis": [], "extraction": []}
     except Exception as e:
         print(input_text, request_id)
         print("[extract_information_from_text()]", e)
