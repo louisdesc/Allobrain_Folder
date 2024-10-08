@@ -480,7 +480,6 @@ def classify_feedback_extractions(
                 model,
                 should_update_mongo,
             )
-
             if classification_result.get("is_new_topic"):
                 duplicate_check_needed.add(sentiment)
 

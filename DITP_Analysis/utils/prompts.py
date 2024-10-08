@@ -459,7 +459,7 @@ CLASSIF_EXAMPLES = [
     "content": '''{
     "justification": "Le feedback signale des pratiques de démarchage malgré une inscription à Bloctel, ce qui indique une violation du service attendu par Bloctel. Aucune des catégories existantes ne couvre spécifiquement ce problème.",
     "new_topic": "Bloctel : Démarchage Abusif malgré Inscription"
-}'''
+}''',
 },
 {
     "role": "user",
@@ -482,8 +482,8 @@ CLASSIF_EXAMPLES = [
     "content": '''{
     "justification": "Le feedback exprime une insatisfaction concernant un délai de traitement jugé inadmissible pour les documents. La catégorie 'Suivi de dossier : Délai de Traitement' est pertinente et couvre bien la situation.",
     "topics": ["Suivi de dossier : Délai de Traitement"]
-}'''
-}
+}''',
+},
 {
     "role": "user",
     "content": PROMPT_FEEDBACK_TEMPLATE.format(
@@ -505,7 +505,7 @@ CLASSIF_EXAMPLES = [
     "content": '''{
     "justification": "Le feedback mentionne une absence de réponse pour un dossier envoyé, indiquant un manque de suivi. La catégorie 'Communication : Absence de Réponse' est pertinente, mais elle peut être précisée pour mieux refléter le contexte du dossier.",
     "new_topic": "Suivi de Dossier : Absence de Réponse"
-}'''
+}''',
 },
 {
     "role": "user",
@@ -514,7 +514,7 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="Désespoir face à l'inefficacité du système",
         closest_subjects=[
-            "Fonctionnement du Site : Problèmes de Chargement",
+            "Site Internet : Problèmes de Chargement",
             "Communication : Insuffisante",
             "Délai de Traitement : Trop Long",
             "Réclamations : Non Traitées",
@@ -527,7 +527,7 @@ CLASSIF_EXAMPLES = [
     "content": '''{
     "justification": "Le feedback exprime une frustration importante face à l'inefficacité globale du système de l'INPI, mais il est trop général pour correspondre à une catégorie existante. Aucun sujet spécifique ne peut être attribué.",
     "topics": []
-}'''
+}''',
 },
 {
     "role": "user",
@@ -550,7 +550,7 @@ CLASSIF_EXAMPLES = [
     "content": '''{
     "justification": "Le feedback décrit un comportement inapproprié de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. La catégorie 'Personnel : Comportement Inapproprié' est plus appropriée pour refléter la nature de ce retour.",
     "topics": ["Personnel : Comportement Inapproprié"]
-}'''
+}''',
 }
 ]
 
