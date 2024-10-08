@@ -1,8 +1,10 @@
-from typing import List, Dict
+import logging
+from typing import List, Dict, Any
 from scipy.spatial import distance
 import concurrent.futures
 from bson import ObjectId
 from tqdm import tqdm
+import json
 
 from utils.request_utils import request_llm, get_embedding
 from utils.all_utils import evaluate_object
@@ -323,25 +325,52 @@ def update_splitted_analysis(feedback_id: ObjectId, extractions: List, splitted_
 
     return splitted_analysis
 
-def classify_one_extraction(extraction: str, extraction_type: str, language: str, brand: str, brand_descr: str, model: str, update_mongo: bool = True) -> Dict:
+def classify_extraction_with_topics(
+    extraction_text: str,
+    extraction_sentiment: str,
+    language: str,
+    brand_name: str,
+    brand_context: str,
+    model: str,
+    should_update_mongo: bool = True
+) -> Dict[str, Any]:
     """
-    Classify one extraction with already existing elementary subjects, if do not exist push new ones to mongo
+    Classify a given text extraction and identify associated topics.
+
+    This function retrieves elementary subjects related to a specified brand and category,
+    finds the closest subjects based on their embeddings, and sends a request to a language model
+    for classification. If a new topic is identified, it can be added to the database.
+
+    Parameters:
+    - extraction_text (str): The text extraction to classify.
+    - extraction_sentiment (str): The sentiment of the extraction (e.g., positive or negative).
+    - language (str): The language in which the extraction is written.
+    - brand_name (str): The name of the brand associated with the extraction.
+    - brand_context (str): A context of the brand.
+    - model (str): The model to use for classification.
+    - should_update_mongo (bool): Indicates whether to update the database with new topics. Defaults to True.
+
+    Returns:
+    - Dict[str, Any]: A dictionary containing:
+        - "topics": A list of identified topics related to the extraction.
+        - "justification": The reasoning provided by the model for the classification.
+        - "is_new_topic": A boolean indicating whether a new topic was created.
+        - "error": An error message if an exception occurred during processing.
     """
+    
+    # Retrieve all elementary subjects corresponding to the brand and category
+    elementary_subjects = get_elementary_subjects(brand_name, extraction_sentiment)
 
-    # get all elementary subjects corresponding to the brand and a type (positive/negative)
-    categories = get_elementary_subjects(brand, extraction_type)
+    subject_names = [subject["elementary_subject"] for subject in elementary_subjects]
+    subject_embeddings = [subject["embeddings"] for subject in elementary_subjects]
 
-    all_categories = [c["elementary_subject"] for c in categories]
-    categories_embeddings = [c["embeddings"] for c in categories]
-
-    # get closest categories depending on embeddings similarity
-    closest_categories = find_closest_elementary_subjects(
-        extraction,
-        all_categories,
-        categories_embeddings,
+    # Find the closest subjects based on embeddings similarity
+    closest_subjects = find_closest_elementary_subjects(
+        extraction_text,
+        subject_names,
+        subject_embeddings,
         top_n=5,
     )
-
 
     messages = (
         [{"role": "user", "content": PROMPT_CLASSIF}]
@@ -350,10 +379,10 @@ def classify_one_extraction(extraction: str, extraction_type: str, language: str
             {
                 "role": "user",
                 "content": PROMPT_FEEDBACK_TEMPLATE.format(
-                    brand_descr=brand_descr,
-                    type=extraction_type.capitalize(),
-                    feedback=extraction,
-                    categories=closest_categories,
+                    brand_context=brand_context,
+                    extraction_sentiment=extraction_sentiment.capitalize(),
+                    extraction_text=extraction_text,
+                    closest_subjects=closest_subjects,
                     language=language,
                 ),
             }
@@ -361,22 +390,22 @@ def classify_one_extraction(extraction: str, extraction_type: str, language: str
     )
 
     try:
-        res = request_llm(messages, model=model)
-        res = eval(res)
+        response = request_llm(messages, model=model)
+        response_data = json.loads(response)  # Use json.loads instead of eval
 
-        if "new_topic" in res:
-            new_topic = res.get("new_topic")
-            # get the embedding of the new topic
+        new_topic = response_data.get("new_topic")  # Extract new_topic early
+        if new_topic:
+            # Get the embedding of the new topic
             embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
 
-            # if it's a new subject and `update_mongo` is True : we push it to Mongo
-            if update_mongo:
-                # find corresponding topics from the classification schemes
-                mappings = update_mapping_for_one_elementary_subject(brand, new_topic)
-                # push the new elementary subject to mongo
+            # If it's a new subject and `should_update_mongo` is True, push it to Mongo
+            if should_update_mongo:
+                # Find corresponding topics from the classification schemes
+                mappings = update_mapping_for_one_elementary_subject(brand_name, new_topic)
+                # Push the new elementary subject to Mongo
                 push_new_elementary_subject_to_mongo(
-                    brand,
-                    extraction_type,
+                    brand_name,
+                    extraction_sentiment,
                     new_topic,
                     embedding,
                     mappings,
@@ -385,16 +414,17 @@ def classify_one_extraction(extraction: str, extraction_type: str, language: str
             topics = [new_topic]
             is_new_topic = True
         else:
-            topics = res.get("topics", [])
+            topics = response_data.get("topics", [])
             is_new_topic = False
 
         return {
             "topics": topics,
-            "justification": res.get("justification"),
+            "justification": response_data.get("justification"),
             "is_new_topic": is_new_topic,
         }
 
     except Exception as e:
+        logging.error(f"Error in classify_extraction_with_topics: {e}")  # Log the error
         return {
             "topics": [],
             "error": str(e),
@@ -402,71 +432,79 @@ def classify_one_extraction(extraction: str, extraction_type: str, language: str
 
 
 
-def classify_one_feedback(
+def classify_feedback_extractions(
     feedback_id: str,
-    extractions: List,
+    extractions: List[Dict],
     model: str,
-    brand: str,
+    brand_name: str,
     brand_context: str,
     language: str,
     extractions_column: str = "extractions",
-    update_mongo: bool = True,
-):
+    should_update_mongo: bool = True,
+) -> Dict[str, Any]:
+    """
+    Classify the extractions of a feedback and update the database with the results if necessary.
+
+    Parameters:
+    - feedback_id (str): The unique identifier of the feedback entry.
+    - extractions (List[Dict]): A list of extraction dictionaries to classify.
+    - model (str): The model to use for classifying the extractions.
+    - brand_name (str): The name of the brand associated with the feedback.
+    - brand_context (str): A context for the brand.
+    - language (str): The language in which the feedback is written.
+    - extractions_column (str): The name of the column in the database that stores extractions.
+    - should_update_mongo (bool): Indicates whether to update the database with new classifications.
+
+    Returns:
+    - Dict[str, Any]: A dictionary containing the feedback ID and the classified extractions.
+    """
     if not isinstance(extractions, list):
-        return []
+        return {"id": feedback_id, "extractions": []}
 
-    need_to_check_duplicates = set()  # set
+    duplicate_check_needed = set()
 
-    # for each extraction in the feedback
     for extraction in extractions:
-        extraction_type = extraction["sentiment"].lower()
-        text = extraction.get("extraction", "")
+        sentiment = extraction.get("sentiment", "").lower()
+        extraction_text = extraction.get("extraction", "")
 
-        if extraction_type == "neutral":
+        if sentiment == "neutral":
             continue
 
-        classif = classify_one_extraction(
-            text,
-            extraction_type,
-            language,
-            brand,
-            brand_context,
-            model,
-            update_mongo,
-        )
-        print(classif)
-        # if there is a new topic, then we need to check duplicates
-        if classif.get("is_new_topic"):
-            need_to_check_duplicates.add(extraction_type)
+        try:
+            classification_result = classify_extraction_with_topics(
+                extraction_text,
+                sentiment,
+                language,
+                brand_name,
+                brand_context,
+                model,
+                should_update_mongo,
+            )
 
-        topics = classif.get("topics", [])
-        # if there is topics, then set 'elementary_subjects'
-        if len(topics) > 0:
-            extraction["elementary_subjects"] = topics
-            extraction['topics'] = map_elementary_subjects_with_topics(brand, topics[0])
+            if classification_result.get("is_new_topic"):
+                duplicate_check_needed.add(sentiment)
 
-    if update_mongo:
+            topics = classification_result.get("topics", [])
+            if topics:
+                extraction["elementary_subjects"] = topics
+                extraction['topics'] = map_elementary_subjects_with_topics(brand_name, topics[0])
+
+        except Exception as e:
+            # Log the error instead of printing
+            logging.error(f"Error classifying extraction: {e}")
+            continue
+
+    if should_update_mongo:
         update_feedbacks_with_classification(
             feedback_id,
-            brand,
+            brand_name,
             extractions,
-            need_to_check_duplicates,
+            duplicate_check_needed,
             extractions_column
         )
 
-    # TODO: Remove
-    print("____________________________")
-    print("____________________________")
-    for entry in extractions:
-        print(f"Sentence : {entry['text']}")
-        print(f"Extraction : {entry['extraction']}")
-        if 'elementary_subjects' in entry:
-            print(f"Elementary Subjects : {entry['elementary_subjects']}")
-        print("____________")
-    # TODO: Remove above
-
     return {
-        "id" : feedback_id,
+        "id": feedback_id,
         "extractions": extractions
     }
 
@@ -481,7 +519,7 @@ def run_analysis_full_parallel(
     print('t')
     res = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(classify_one_feedback, x.get('_id'), x.get('extractions'), model, brand, brand_descr, language, 'extractions', save_to_mongo) for x in texts_with_ids]
+        futures = [executor.submit(classify_feedback_extractions, x.get('_id'), x.get('extractions'), model, brand, brand_descr, language, 'extractions', save_to_mongo) for x in texts_with_ids]
 
         chunk_size = 20
         for i in tqdm(range(0, len(futures), chunk_size), desc="Processing chunks"):

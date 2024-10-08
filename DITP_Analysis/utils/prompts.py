@@ -215,13 +215,13 @@ If a new category is needed:
 
 PROMPT_FEEDBACK_TEMPLATE = """
 Context:
-{brand_descr}
+{brand_context}
 
-{type} feedback:
-{feedback}
+{extraction_sentiment} feedback:
+{extraction_text}
 
 Categories (in **{language}**):
-{categories}
+{closest_subjects}
 """
 
 
@@ -229,10 +229,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Picard, a company in the food distribution sector.",
-            type="Negative",
-            feedback="Deçu de la rupture de stock sur les carottes...",
-            categories=[
+            brand_context="Feedbacks are from Picard, a company in the food distribution sector.",
+            extraction_sentiment="Negative",
+            extraction_text="Deçu de la rupture de stock sur les carottes...",
+            closest_subjects=[
                 "Service et Personnel : Personnel impoli",
                 "Magasin : Temps d'attente en caisse trop élevé",
                 "Programme de Fidélité : Peu avantageux",
@@ -253,10 +253,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Picard, a company in the food distribution sector.",
-            type="Negative",
-            feedback="Il y a jamais rien quand on arrive après 17h!!!!!!",
-            categories=[
+            brand_context="Feedbacks are from Picard, a company in the food distribution sector.",
+            extraction_sentiment="Negative",
+            extraction_text="Il y a jamais rien quand on arrive après 17h!!!!!!",
+            closest_subjects=[
                 "Service et Personnel : Personnel impoli",
                 "Magasin : Temps d'attente en caisse trop élevé",
                 "Programme de Fidélité : Peu avantageux",
@@ -279,10 +279,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Picard, a company in the food distribution sector.",
-            type="Negative",
-            feedback="Click and collect indisponible dans le magasin de Paris Beaugrenelle",
-            categories=[
+            brand_context="Feedbacks are from Picard, a company in the food distribution sector.",
+            extraction_sentiment="Negative",
+            extraction_text="Click and collect indisponible dans le magasin de Paris Beaugrenelle",
+            closest_subjects=[
                 "Service et Personnel : Personnel impoli",
                 "Magasin : Temps d'attente en caisse trop élevé",
                 "Programme de Fidélité : Peu avantageux",
@@ -302,10 +302,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from FDJ, a company of the French national lottery.",
-            type="Negative",
-            feedback="Les gains sont bien trop faibles",
-            categories=[
+            brand_context="Feedbacks are from FDJ, a company of the French national lottery.",
+            extraction_sentiment="Negative",
+            extraction_text="Les gains sont bien trop faibles",
+            closest_subjects=[
                 "Jeux : Bugs : Jeux de grattage en ligne",
                 "Application Mobile : Fonctionnalités : Impossibilité de mettre des jeux en favoris",
                 "Application Mobile : Problèmes de Connexion",
@@ -324,10 +324,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
-            type="Positive",
-            feedback="The arabica coffee was so good it's very tasty compared to the other ones I tried",
-            categories=[
+            brand_context="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
+            extraction_sentiment="Positive",
+            extraction_text="The arabica coffee was so good it's very tasty compared to the other ones I tried",
+            closest_subjects=[
                 "Service : Staff : Nice Staff",
                 "Service : Rapidity of Service",
                 "Products : Variety : Food Options for Vegetarians",
@@ -347,10 +347,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
-            type="Positive",
-            feedback="The person who served me at the counter in Gangnam Starbucks was very sweet and smiling",
-            categories=[
+            brand_context="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
+            extraction_sentiment="Positive",
+            extraction_text="The person who served me at the counter in Gangnam Starbucks was very sweet and smiling",
+            closest_subjects=[
                 "Service : Staff : Nice Staff",
                 "Service : Quality of Welcome",
                 "Service : Rapidity of Service",
@@ -371,10 +371,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from SNCF Connect, an application of the French national railway company.",
-            type="Positive",
-            feedback="I didn't wait very long to get my coffee, the staff was super sweet with me",
-            categories=[
+            brand_context="Feedbacks are from SNCF Connect, an application of the French national railway company.",
+            extraction_sentiment="Positive",
+            extraction_text="I didn't wait very long to get my coffee, the staff was super sweet with me",
+            closest_subjects=[
                 "Products : Quality : Coffee Quality",
                 "Service : Staff : Nice Staff",
                 "Service : Rapidity of Service",
@@ -395,10 +395,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from SNCF Connect, an application of the French national railway company.",
-            type="Positive",
-            feedback="Super, I'm very satisfied",
-            categories=[
+            brand_context="Feedbacks are from SNCF Connect, an application of the French national railway company.",
+            extraction_sentiment="Positive",
+            extraction_text="Super, I'm very satisfied",
+            closest_subjects=[
                 "Application Mobile : Ergonomics : Easy to Use",
                 "Website : Online Purchase : Very Convenient",
                 "After-Sales Service : Claims : Well Managed",
@@ -416,10 +416,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from FDJ, a company of the French national lottery.",
-            type="Negative",
-            feedback="Quand je me connecte avec l'authentification biométrique, l'application plante",
-            categories=[
+            brand_context="Feedbacks are from FDJ, a company of the French national lottery.",
+            extraction_sentiment="Negative",
+            extraction_text="Quand je me connecte avec l'authentification biométrique, l'application plante",
+            closest_subjects=[
                 "Application Mobile : Notifications : Trop nombreuses",
                 "Application Mobile : Mises à Jour : Fonctionnalités supprimées",
                 "Jeux : Bugs : Jeux de grattage en ligne",
@@ -439,10 +439,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from FDJ, a company of the French national lottery.",
-            type="Negative",
-            feedback="On m'a prélevé deux fois pour la grille de loto sur le compte",
-            categories=[
+            brand_context="Feedbacks are from FDJ, a company of the French national lottery.",
+            extraction_sentiment="Negative",
+            extraction_text="On m'a prélevé deux fois pour la grille de loto sur le compte",
+            closest_subjects=[
                 "Paiement : Problèmes : Remboursement",
                 "Paiement : Problèmes : Montant Incorrect",
                 "Remboursement : Problèmes : Montant Incorrect",
@@ -462,10 +462,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Nivea, a company in the cosmetics sector.",
-            type="Negative",
-            feedback="je n'aime pas la nouvelle crème solaire...",
-            categories=[
+            brand_context="Feedbacks are from Nivea, a company in the cosmetics sector.",
+            extraction_sentiment="Negative",
+            extraction_text="je n'aime pas la nouvelle crème solaire...",
+            closest_subjects=[
                 "Produits : Qualité : Crème Solaire : Ne s'étale pas bien",
                 "Produits : Qualité : Crème Solaire : Mauvaise Qualité",
                 "Produits : Qualité : Crème Solaire : Odeur Désagréable",
@@ -485,10 +485,10 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_descr="Feedbacks are from Nivea, a company in the cosmetics sector.",
-            type="Negative",
-            feedback="c'est chère",
-            categories=[
+            brand_context="Feedbacks are from Nivea, a company in the cosmetics sector.",
+            extraction_sentiment="Negative",
+            extraction_text="c'est chère",
+            closest_subjects=[
                 "Produits : Qualité : Crème Solaire : Ne s'étale pas bien",
                 "Produits : Qualité : Crème Solaire : Mauvaise Qualité",
                 "Produits : Qualité : Crème Solaire : Odeur Désagréable",
