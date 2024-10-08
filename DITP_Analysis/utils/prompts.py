@@ -302,33 +302,11 @@ CLASSIF_EXAMPLES = [
     {
         "role": "user",
         "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from FDJ, a company of the French national lottery.",
-            extraction_sentiment="Negative",
-            extraction_text="Les gains sont bien trop faibles",
-            closest_subjects=[
-                "Jeux : Bugs : Jeux de grattage en ligne",
-                "Application Mobile : Fonctionnalités : Impossibilité de mettre des jeux en favoris",
-                "Application Mobile : Problèmes de Connexion",
-                "Gains : Montant des Gains : Pas assez élevé",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback exprime une insatisfaction concernant le montant des gains. La catégorie 'Gains : Montant des Gains : Pas assez élevé' correspond parfaitement.",
-    "topics": ["Gains : Montant des Gains : Pas assez élevé"]
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
             brand_context="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
             extraction_sentiment="Positive",
             extraction_text="The arabica coffee was so good it's very tasty compared to the other ones I tried",
             closest_subjects=[
-                "Service : Staff : Nice Staff",
+                "Service : Staff",
                 "Service : Rapidity of Service",
                 "Products : Variety : Food Options for Vegetarians",
                 "Products : Variety : Options for Personalized Coffee",
@@ -340,8 +318,8 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "The feedback praises the taste and quality of the Arabica coffee. None of the existing categories address product quality or coffee taste. It's appropriate to create a new category.",
-    "new_topic": "Products : Quality : Coffee Taste and Quality"
+    "justification": "The feedback praises the taste of the Arabica coffee. None of the existing categories address coffee taste. It's appropriate to create a new category.",
+    "new_topic": "Products : Quality : Coffee"
 }''',
     },
     {
@@ -351,7 +329,7 @@ CLASSIF_EXAMPLES = [
             extraction_sentiment="Positive",
             extraction_text="The person who served me at the counter in Gangnam Starbucks was very sweet and smiling",
             closest_subjects=[
-                "Service : Staff : Nice Staff",
+                "Service : Staff",
                 "Service : Quality of Welcome",
                 "Service : Rapidity of Service",
                 "Products : Variety : Food Options for Vegetarians",
@@ -364,8 +342,8 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "The feedback highlights the positive attitude of the staff, which fits perfectly with the category 'Service : Staff : Nice Staff'.",
-    "topics": ["Service : Staff : Nice Staff"]
+    "justification": "The feedback highlights the positive attitude of the staff, which fits perfectly with the category 'Service : Staff'.",
+    "topics": ["Service : Staff"]
 }''',
     },
     {
@@ -376,7 +354,7 @@ CLASSIF_EXAMPLES = [
             extraction_text="I didn't wait very long to get my coffee, the staff was super sweet with me",
             closest_subjects=[
                 "Products : Quality : Coffee Quality",
-                "Service : Staff : Nice Staff",
+                "Service : Staff",
                 "Service : Rapidity of Service",
                 "Products : Variety : Food Options for Vegetarians",
                 "Products : Customization : Options for Personalized Coffee",
@@ -388,8 +366,8 @@ CLASSIF_EXAMPLES = [
     {
         "role": "assistant",
         "content": '''{
-    "justification": "The feedback mentions both the quick service and the friendliness of the staff. The categories 'Service : Rapidity of Service' and 'Service : Staff : Nice Staff' are appropriate.",
-    "topics": ["Service : Rapidity of Service", "Service : Staff : Nice Staff"]
+    "justification": "The feedback mentions both the quick service and the friendliness of the staff. The categories 'Service : Rapidity of Service' and 'Service : Staff' are appropriate.",
+    "topics": ["Service : Rapidity of Service", "Service : Staff"]
 }''',
     },
     {
@@ -433,7 +411,7 @@ CLASSIF_EXAMPLES = [
         "role": "assistant",
         "content": '''{
     "justification": "Le feedback signale un plantage de l'application lors de l'authentification biométrique. Aucune catégorie existante ne couvre ce problème spécifique. Il est donc pertinent de créer une nouvelle catégorie.",
-    "new_topic": "Application Mobile : Bugs : Crash lors de l'Authentification Biométrique"
+    "new_topic": "Application Mobile : Bugs : Authentification Biométrique"
 }''',
     },
     {
@@ -460,52 +438,120 @@ CLASSIF_EXAMPLES = [
 }''',
     },
     {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Nivea, a company in the cosmetics sector.",
-            extraction_sentiment="Negative",
-            extraction_text="je n'aime pas la nouvelle crème solaire...",
-            closest_subjects=[
-                "Produits : Qualité : Crème Solaire : Ne s'étale pas bien",
-                "Produits : Qualité : Crème Solaire : Mauvaise Qualité",
-                "Produits : Qualité : Crème Solaire : Odeur Désagréable",
-                "Produits : Variété : Peu de choix : Savons pour le Corps",
-                "Produits : Variété : Peu de choix : Crèmes Solaires",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback exprime une insatisfaction générale vis-à-vis de la nouvelle crème solaire sans préciser la raison. Les catégories existantes sont trop spécifiques. Il est donc approprié de créer une nouvelle catégorie plus générale.",
-    "new_topic": "Produits : Insatisfaction Générale : Nouvelle Crème Solaire"
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Nivea, a company in the cosmetics sector.",
-            extraction_sentiment="Negative",
-            extraction_text="c'est chère",
-            closest_subjects=[
-                "Produits : Qualité : Crème Solaire : Ne s'étale pas bien",
-                "Produits : Qualité : Crème Solaire : Mauvaise Qualité",
-                "Produits : Qualité : Crème Solaire : Odeur Désagréable",
-                "Produits : Variété : Peu de choix : Savons pour le Corps",
-                "Produits : Variété : Peu de choix : Crèmes Solaires",
-                "Prix : Rapport Qualité-Prix : Quantité Insuffisante par rapport au Prix",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback mentionne que les produits sont chers. Bien qu'il y ait une catégorie sur le rapport qualité-prix, aucune ne traite spécifiquement du prix élevé. Il est donc pertinent de créer une nouvelle catégorie.",
-    "new_topic": "Prix : Prix Trop Élevés"
-}''',
-    },
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Hors-structures\nIntitulé Structure 2: INPI-Institut National de la Propriété Industrielle\nTags Métiers: Fonctionnement du site,Dépôt de dossier\nPays de la demande: France",
+        extraction_sentiment="Negative",
+        extraction_text="Pratiques de démarchage abusif malgré l'inscription à Bloctel",
+        closest_subjects=[
+            "Assistance Incomplète",
+            "Communication : Manque de Clarté",
+            "Non-respect de la Confidentialité",
+            "Bloctel : Inscription",
+            "Communication : Absence de Réponse",
+            "Accessibilité : Difficulté de Contact",
+        ],
+        language="french",
+    ),
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback signale des pratiques de démarchage malgré une inscription à Bloctel, ce qui indique une violation du service attendu par Bloctel. Aucune des catégories existantes ne couvre spécifiquement ce problème.",
+    "new_topic": "Bloctel : Démarchage Abusif malgré Inscription"
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nPays de la demande: France",
+        extraction_sentiment="Negative",
+        extraction_text="Délai inadmissible pour le traitement des documents",
+        closest_subjects=[
+            "Communication : Manque de Suivi",
+            "Communication : Délai de Réponse",
+            "Accessibilité : Problèmes de Connexion",
+            "Assistance : Insuffisante",
+            "Suivi de dossier : Délai de Traitement",
+        ],
+        language="french",
+    ),
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback exprime une insatisfaction concernant un délai de traitement jugé inadmissible pour les documents. La catégorie 'Suivi de dossier : Délai de Traitement' est pertinente et couvre bien la situation.",
+    "topics": ["Suivi de dossier : Délai de Traitement"]
+}'''
+}
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Ambassade de France aux Philippines\nPays de la demande: Philippines",
+        extraction_sentiment="Negative",
+        extraction_text="Pas de réponse de réception ou corrections pour le dossier CFE",
+        closest_subjects=[
+            "Assistance : Manque de Support",
+            "Communication : Absence de Réponse",
+            "Suivi de Dossier : Incomplet",
+            "Suivi de Dossier : Retards",
+            "Communication : Manque de Transparence",
+        ],
+        language="french",
+    ),
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback mentionne une absence de réponse pour un dossier envoyé, indiquant un manque de suivi. La catégorie 'Communication : Absence de Réponse' est pertinente, mais elle peut être précisée pour mieux refléter le contexte du dossier.",
+    "new_topic": "Suivi de Dossier : Absence de Réponse"
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Hors-structures\nIntitulé Structure 2: INPI-Institut National de la Propriété Industrielle\nTags Métiers: Fonctionnement du site,Dépôt de dossier\nPays de la demande: France",
+        extraction_sentiment="Negative",
+        extraction_text="Désespoir face à l'inefficacité du système",
+        closest_subjects=[
+            "Fonctionnement du Site : Problèmes de Chargement",
+            "Communication : Insuffisante",
+            "Délai de Traitement : Trop Long",
+            "Réclamations : Non Traitées",
+        ],
+        language="french",
+    ),
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback exprime une frustration importante face à l'inefficacité globale du système de l'INPI, mais il est trop général pour correspondre à une catégorie existante. Aucun sujet spécifique ne peut être attribué.",
+    "topics": []
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Direction des Français à l'étranger et de l'administration consulaire\nPays de la demande: France",
+        extraction_sentiment="Negative",
+        extraction_text="Comportement désagréable du personnel",
+        closest_subjects=[
+            "Accueil : Manque de Courtoisie",
+            "Personnel : Comportement Inapproprié",
+            "Service : Communication : Absence de Réponse",
+            "Service : Assistance Incomplète",
+            "Communication : Manque de Clarté",
+        ],
+        language="french",
+    ),
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback décrit un comportement inapproprié de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. La catégorie 'Personnel : Comportement Inapproprié' est plus appropriée pour refléter la nature de ce retour.",
+    "topics": ["Personnel : Comportement Inapproprié"]
+}'''
+}
 ]
 
 
