@@ -173,7 +173,7 @@ Instructions:
 3. **Category Structure:**
 
    - Use a clear, hierarchical structure for categories. Each level must be understandable on its own.
-     - Correct: `Products : Quality of the coffee : Taste of the coffee`
+     - Correct: `Products : Quality : Coffee`
      - Incorrect: `Products : Quality : Taste` (This is too vague)
 
 4. **Multiple Categories:**
@@ -214,240 +214,73 @@ If a new category is needed:
 """
 
 PROMPT_FEEDBACK_TEMPLATE = """
-Context:
+**Global context:**
 {brand_context}
+**Part of the {language} {extraction_sentiment} feedback to process**: {extraction_text}
 
-{extraction_sentiment} feedback:
-{extraction_text}
-
-Categories (in **{language}**):
+Closest categories (in **{language}**):
 {closest_subjects}
 """
 
 
 CLASSIF_EXAMPLES = [
     {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Picard, a company in the food distribution sector.",
-            extraction_sentiment="Negative",
-            extraction_text="Deçu de la rupture de stock sur les carottes...",
-            closest_subjects=[
-                "Service et Personnel : Personnel impoli",
-                "Magasin : Temps d'attente en caisse trop élevé",
-                "Programme de Fidélité : Peu avantageux",
-                "Produits : Variété des Produits : Peu de choix : Produits Végétariens",
-                "Produits : Variété des Produits : Peu de choix : Produits Sans Gluten",
-                "Produits : Rupture de Stock : Viandes",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback exprime une déception concernant la rupture de stock sur les carottes. Aucune des catégories existantes ne couvre spécifiquement les légumes. Il est donc approprié de créer une nouvelle catégorie.",
-    "new_topic": "Produits : Rupture de Stock : Légumes"
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Picard, a company in the food distribution sector.",
-            extraction_sentiment="Negative",
-            extraction_text="Il y a jamais rien quand on arrive après 17h!!!!!!",
-            closest_subjects=[
-                "Service et Personnel : Personnel impoli",
-                "Magasin : Temps d'attente en caisse trop élevé",
-                "Programme de Fidélité : Peu avantageux",
-                "Produits : Variété des Produits : Peu de choix : Produits Végétariens",
-                "Produits : Variété des Produits : Peu de choix : Produits Sans Gluten",
-                "Produits : Rupture de Stock : Viandes",
-                "Produits : Rupture de Stock : Légumes",
-                "Produits : Rupture de Stock : Général",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback indique une absence générale de produits après 17h, ce qui correspond à un problème de rupture de stock généralisé. La catégorie 'Produits : Rupture de Stock : Général' est donc la plus appropriée.",
-    "topics": ["Produits : Rupture de Stock : Général"]
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Picard, a company in the food distribution sector.",
-            extraction_sentiment="Negative",
-            extraction_text="Click and collect indisponible dans le magasin de Paris Beaugrenelle",
-            closest_subjects=[
-                "Service et Personnel : Personnel impoli",
-                "Magasin : Temps d'attente en caisse trop élevé",
-                "Programme de Fidélité : Peu avantageux",
-                "Application Mobile : Notifications : Trop nombreuses",
-                "Produits : Rupture de Stock : Viandes",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback concerne l'indisponibilité du service Click and Collect dans un magasin spécifique. Aucune des catégories existantes ne couvre ce sujet. Il est donc nécessaire de créer une nouvelle catégorie.",
-    "new_topic": "Services en Ligne : Click and Collect : Indisponible dans certains magasins"
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
-            extraction_sentiment="Positive",
-            extraction_text="The arabica coffee was so good it's very tasty compared to the other ones I tried",
-            closest_subjects=[
-                "Service : Staff",
-                "Service : Rapidity of Service",
-                "Products : Variety : Food Options for Vegetarians",
-                "Products : Variety : Options for Personalized Coffee",
-                "Application Mobile : Ease of Use",
-            ],
-            language="english",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "The feedback praises the taste of the Arabica coffee. None of the existing categories address coffee taste. It's appropriate to create a new category.",
-    "new_topic": "Products : Quality : Coffee"
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from Starbucks, a company in the coffee distribution sector.",
-            extraction_sentiment="Positive",
-            extraction_text="The person who served me at the counter in Gangnam Starbucks was very sweet and smiling",
-            closest_subjects=[
-                "Service : Staff",
-                "Service : Quality of Welcome",
-                "Service : Rapidity of Service",
-                "Products : Variety : Food Options for Vegetarians",
-                "Products : Customization : Options for Personalized Coffee",
-                "Application Mobile : Ease of Use",
-            ],
-            language="english",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "The feedback highlights the positive attitude of the staff, which fits perfectly with the category 'Service : Staff'.",
-    "topics": ["Service : Staff"]
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from SNCF Connect, an application of the French national railway company.",
-            extraction_sentiment="Positive",
-            extraction_text="I didn't wait very long to get my coffee, the staff was super sweet with me",
-            closest_subjects=[
-                "Products : Quality : Coffee Quality",
-                "Service : Staff",
-                "Service : Rapidity of Service",
-                "Products : Variety : Food Options for Vegetarians",
-                "Products : Customization : Options for Personalized Coffee",
-                "Application Mobile : Ease of Use",
-            ],
-            language="english",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "The feedback mentions both the quick service and the friendliness of the staff. The categories 'Service : Rapidity of Service' and 'Service : Staff' are appropriate.",
-    "topics": ["Service : Rapidity of Service", "Service : Staff"]
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from SNCF Connect, an application of the French national railway company.",
-            extraction_sentiment="Positive",
-            extraction_text="Super, I'm very satisfied",
-            closest_subjects=[
-                "Application Mobile : Ergonomics : Easy to Use",
-                "Website : Online Purchase : Very Convenient",
-                "After-Sales Service : Claims : Well Managed",
-            ],
-            language="english",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "The feedback expresses general satisfaction without specifying any particular aspect. It cannot be classified under the existing categories.",
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nTags Métiers: Carte nationale d'identité ou passeport\nPays de la demande: France\n**Full feedback**: Demande de passeport et de carte d’identité\nJ’avais des photos récentes on m’a demandé de les refaire sans aucun motif, sauf celui de payer à nouveau 6€. Ce n'est vraiment pas cool, alors qu'elles avaient été acceptées au départ. Pourquoi me refaire faire des photos ?",
+        extraction_sentiment="Negative",
+        extraction_text="Ce n'est vraiment pas cool,",
+        closest_subjects=[
+            "Suivi de Dossier : Demande de justificatifs supplémentaires : Carte nationale d'identité (CNI)",
+            "Suivi de Dossier : Délai de Traitement : Carte nationale d'identité (CNI)",
+            "Suivi de Dossier : Erreurs Administratives",
+            "Assistance : Manque de Support",
+            "Accessibilité : Coût Supplémentaire"
+        ],
+        language="french"
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le segment extrait du feedback est trop imprécis pour être associé à une catégorie spécifique. Bien que le sentiment soit négatif, il ne contient pas suffisamment de détails pour identifier un sujet précis à traiter.",
     "topics": []
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from FDJ, a company of the French national lottery.",
-            extraction_sentiment="Negative",
-            extraction_text="Quand je me connecte avec l'authentification biométrique, l'application plante",
-            closest_subjects=[
-                "Application Mobile : Notifications : Trop nombreuses",
-                "Application Mobile : Mises à Jour : Fonctionnalités supprimées",
-                "Jeux : Bugs : Jeux de grattage en ligne",
-                "Application Mobile : Fonctionnalités : Impossibilité de mettre des jeux en favoris",
-                "Gains : Montant des Gains : Pas assez élevé",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback signale un plantage de l'application lors de l'authentification biométrique. Aucune catégorie existante ne couvre ce problème spécifique. Il est donc pertinent de créer une nouvelle catégorie.",
-    "new_topic": "Application Mobile : Bugs : Authentification Biométrique"
-}''',
-    },
-    {
-        "role": "user",
-        "content": PROMPT_FEEDBACK_TEMPLATE.format(
-            brand_context="Feedbacks are from FDJ, a company of the French national lottery.",
-            extraction_sentiment="Negative",
-            extraction_text="On m'a prélevé deux fois pour la grille de loto sur le compte",
-            closest_subjects=[
-                "Paiement : Problèmes : Remboursement",
-                "Paiement : Problèmes : Montant Incorrect",
-                "Remboursement : Problèmes : Montant Incorrect",
-                "Remboursement : Problèmes : Délai Prolongé",
-                "Application Mobile : Problèmes de Connexion : Bugs lors de l'Authentification Biométrique",
-            ],
-            language="french",
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": '''{
-    "justification": "Le feedback concerne un double prélèvement, ce qui est un problème sérieux de paiement. Les catégories existantes ne couvrent pas ce cas spécifique. Il est donc nécessaire de créer une nouvelle catégorie.",
-    "new_topic": "Paiement : Problèmes : Prélèvements Multiples"
-}''',
-    },
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nTags Métiers: Carte nationale d'identité ou passeport\nPays de la demande: France\n**Full feedback**: Demande de passeport et de carte d’identité\nJ’avais des photos récentes on m’a demandé de les refaire sans aucun motif, sauf celui de payer à nouveau 6€. Ce n'est vraiment pas cool, alors qu'elles avaient été acceptées au départ. Pourquoi me refaire faire des photos ?",
+        extraction_sentiment="Negative",
+        extraction_text="J’avais des photos récentes on m’a demandé de les refaire sans aucun motif,",
+        closest_subjects=[
+            "Suivi de Dossier : Demande de justificatifs supplémentaires : Carte nationale d'identité (CNI)",
+            "Suivi de Dossier : Délai de Traitement : Carte nationale d'identité (CNI)",
+            "Suivi de Dossier : Erreurs Administratives",
+            "Assistance : Manque de Support",
+            "Accessibilité : Coût Supplémentaire"
+        ],
+        language="french"
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback exprime une frustration face à la demande de nouvelles photos malgré la présentation de photos récentes. La catégorie 'Suivi de Dossier : Demande de justificatifs supplémentaires : Carte nationale d'identité (CNI)' est pertinente pour cette situation.",
+    "topics": ["Suivi de Dossier : Demande de justificatifs supplémentaires : Carte nationale d'identité (CNI)"]
+}'''
+},
     {
     "role": "user",
     "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Hors-structures\nIntitulé Structure 2: INPI-Institut National de la Propriété Industrielle\nTags Métiers: Fonctionnement du site,Dépôt de dossier\nPays de la demande: France",
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Hors-structures\nIntitulé Structure 2: INPI-Institut National de la Propriété Industrielle\nTags Métiers: Fonctionnement du site,Dépôt de dossier\nPays de la demande: France\n**Full feedback**: J'ai un compte auprès de Bloctel depuis des années pour éviter les démarchages abusif. \nForce est de constater que face aux pratiques de ce ""bureau d'études RGE"", la solution proposée est complètement inefficace ! De la même manière que ça l'était avec le CPF...\n\nJe reçois tellement d'appels... En plus on se fait raccrocher à la face...\nC'est très dérangeant et j'en viens à me demander si il est possible de déposer plainte pour harcèlement tellement cela empiète sur notre vie.\nMais c'est comme Bloctel, je doute de l'efficacité du processus.",
         extraction_sentiment="Negative",
-        extraction_text="Pratiques de démarchage abusif malgré l'inscription à Bloctel",
+        extraction_text="Je reçois tellement d'appels...",
         closest_subjects=[
+            "Bloctel : Inscription",
             "Assistance Incomplète",
             "Communication : Manque de Clarté",
             "Non-respect de la Confidentialité",
-            "Bloctel : Inscription",
             "Communication : Absence de Réponse",
             "Accessibilité : Difficulté de Contact",
         ],
@@ -464,55 +297,9 @@ CLASSIF_EXAMPLES = [
 {
     "role": "user",
     "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nPays de la demande: France",
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Hors-structures\nIntitulé Structure 2: INPI-Institut National de la Propriété Industrielle\nTags Métiers: Fonctionnement du site,Dépôt de dossier\nPays de la demande: France\n**Full feedback**: Je suis complètement désespéré par l'inefficacité du système de l'INPI. Rien ne fonctionne correctement, et les démarches prennent une éternité. C'est vraiment frustrant de constater que les problèmes persistent sans solution ni amélioration.",
         extraction_sentiment="Negative",
-        extraction_text="Délai inadmissible pour le traitement des documents",
-        closest_subjects=[
-            "Communication : Manque de Suivi",
-            "Communication : Délai de Réponse",
-            "Accessibilité : Problèmes de Connexion",
-            "Assistance : Insuffisante",
-            "Suivi de dossier : Délai de Traitement",
-        ],
-        language="french",
-    ),
-},
-{
-    "role": "assistant",
-    "content": '''{
-    "justification": "Le feedback exprime une insatisfaction concernant un délai de traitement jugé inadmissible pour les documents. La catégorie 'Suivi de dossier : Délai de Traitement' est pertinente et couvre bien la situation.",
-    "topics": ["Suivi de dossier : Délai de Traitement"]
-}''',
-},
-{
-    "role": "user",
-    "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Ambassade de France aux Philippines\nPays de la demande: Philippines",
-        extraction_sentiment="Negative",
-        extraction_text="Pas de réponse de réception ou corrections pour le dossier CFE",
-        closest_subjects=[
-            "Assistance : Manque de Support",
-            "Communication : Absence de Réponse",
-            "Suivi de Dossier : Incomplet",
-            "Suivi de Dossier : Retards",
-            "Communication : Manque de Transparence",
-        ],
-        language="french",
-    ),
-},
-{
-    "role": "assistant",
-    "content": '''{
-    "justification": "Le feedback mentionne une absence de réponse pour un dossier envoyé, indiquant un manque de suivi. La catégorie 'Communication : Absence de Réponse' est pertinente, mais elle peut être précisée pour mieux refléter le contexte du dossier.",
-    "new_topic": "Suivi de Dossier : Absence de Réponse"
-}''',
-},
-{
-    "role": "user",
-    "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Hors-structures\nIntitulé Structure 2: INPI-Institut National de la Propriété Industrielle\nTags Métiers: Fonctionnement du site,Dépôt de dossier\nPays de la demande: France",
-        extraction_sentiment="Negative",
-        extraction_text="Désespoir face à l'inefficacité du système",
+        extraction_text="Je suis complètement désespéré par l'inefficacité du système de l'INPI.",
         closest_subjects=[
             "Site Internet : Problèmes de Chargement",
             "Communication : Insuffisante",
@@ -532,15 +319,15 @@ CLASSIF_EXAMPLES = [
 {
     "role": "user",
     "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Direction des Français à l'étranger et de l'administration consulaire\nPays de la demande: France",
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Direction des Français à l'étranger et de l'administration consulaire\nPays de la demande: France\n**Full feedback**: Je suis très déçu de l'attitude du personnel lors de ma visite. Le ton employé était désagréable et j'ai eu l'impression de déranger. On m'a répondu de manière brusque sans aucune courtoisie. Je m'attendais à un accueil plus professionnel, surtout pour un service public.",
         extraction_sentiment="Negative",
-        extraction_text="Comportement désagréable du personnel",
+        extraction_text="On m'a répondu de manière brusque sans aucune courtoisie",
         closest_subjects=[
             "Accueil : Manque de Courtoisie",
             "Personnel : Comportement Inapproprié",
             "Service : Communication : Absence de Réponse",
             "Service : Assistance Incomplète",
-            "Communication : Manque de Clarté",
+            "Service : Communication : Manque de Clarté",
         ],
         language="french",
     ),
@@ -551,6 +338,50 @@ CLASSIF_EXAMPLES = [
     "justification": "Le feedback décrit un comportement inapproprié de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. La catégorie 'Personnel : Comportement Inapproprié' est plus appropriée pour refléter la nature de ce retour.",
     "topics": ["Personnel : Comportement Inapproprié"]
 }''',
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: AGIRC-ARRCO\nPays de la demande: France\n**Full feedback**: Demande d'information sur mon dossier\nAgirc-arrco. Appel Téléphonique \r\nJ'ai besoin de savoir si ma demande de retraite complémentaire pour le 1er octobre est bien enregistrée et de connaître le montant et la date de paiement ?\r\nJe n'ai pas eu de réponse.\r\nTraitement de dossier toujours en cours.",
+        extraction_sentiment="Negative",
+        extraction_text="J'ai besoin de savoir si ma demande de retraite complémentaire pour le 1er octobre est bien enregistrée et de connaître le montant et la date de paiement ?",
+        closest_subjects=[
+            "Suivi de dossier : Absence de réponse",
+            "Assistance : Manque de Support",
+            "Service : Communication : Manque de Clarté",
+            "Suivi de Dossier : Retard de Traitement"
+        ],
+        language="french"
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback indique une absence de réponse concernant l'enregistrement de la demande de retraite complémentaire et les informations de paiement, ce qui correspond à un manque de suivi du dossier.",
+    "topics": ["Suivi de dossier : Absence de réponse"]
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nIntitulé Structure 2: Caf des BOUCHES-DU-RHONE\nPays de la demande: France\n**Full feedback**: La CAF bloque l'ensemble de mes paiements\nLe paiement de mes prestations a été bloqué depuis Juin 2024, nous sommes fin septembre 2024 et le problème n'a toujours pas été résolu.\r\nLa CAF des Bouches-du-Rhône m'ont réclamé les passeports de mes enfants avec la signature, chose j'ai faite. \r\nSuite à un changement de situation, j'informe tout de suite la CAF. \r\nQuelques semaines plus tard, sans retour de leur part et sans versement, je décide de rappeler la CAF, qui me réclament toutes les pages des passeports (algériens et français de mes enfants) sauf qu'ils ne sont plus en France et je n'ai plus accès à leurs passeports. \r\nJe l'explique donc à la CAF qui m'informe que mon dossier sera traité en urgence, et qu'au moins le minimum social sera versé sur mon compte. \r\nJe n'ai toujours aucun versement, je ne trouve pas d'emploi et je suis sans domicile fixe. Ma situation est urgente. Je ne ferai pas tout ça si ce n'était pas le cas.\r\nJe rappelle la CAF le 26 Septembre, elle m'informe que mes droits sont bloqués car je n'ai pas envoyé les passeports, je lui redis que je n'y ai plus accès elle ne sait pas me répondre et me dit que mes droits, même le RSA resteront bloqués. \r\nQue faire ?",
+        extraction_sentiment="Negative",
+        extraction_text="elle m'informe que mes droits sont bloqués car je n'ai pas envoyé les passeports,",
+        closest_subjects=[
+            "Service : Communication : Manque de Clarté",
+            "Suivi de Dossier : Demande de justificatifs supplémentaires",
+            "Assistance : Manque de Support",
+            "Suivi de dossier : Absence de réponse"
+        ],
+        language="french"
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le retour met en avant une mauvaise compréhension des exigences concernant les documents à fournir, indiquant un manque de clarté dans la communication de la CAF.",
+    "topics": ["Service : Communication : Manque de clarté"]
+}'''
 }
 ]
 
