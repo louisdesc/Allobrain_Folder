@@ -36,6 +36,9 @@ def split_text_into_parts(text: str) -> list[str]:
 
     if current_part:  # Add the last part if it exists
         text_parts.append(current_part.strip())
+    
+    # Filter out any empty strings from the result
+    text_parts = [part for part in text_parts if part]  # Remove empty strings
 
     return text_parts
 

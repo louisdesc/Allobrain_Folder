@@ -360,7 +360,6 @@ def classify_extraction_with_topics(
     
     # Retrieve all elementary subjects corresponding to the brand and category
     elementary_subjects = get_elementary_subjects(brand_name, extraction_sentiment)
-
     subject_names = [subject["elementary_subject"] for subject in elementary_subjects]
     subject_embeddings = [subject["embeddings"] for subject in elementary_subjects]
 
