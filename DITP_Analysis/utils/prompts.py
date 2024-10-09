@@ -154,13 +154,16 @@ User feedback to process:
 """
 
 PROMPT_CLASSIF = """
-Task: You will receive a portion of user feedback in {language}.
+Task: You will receive a piece of user feedback in {language}.
 Your goal is to convert the comment into a structured JSON format by classifying it according to the provided specific categories. When classifying feedback, always choose the most precise and relevant category possible.
 
 Instructions:
 1. **Identify Matching Categories**: 
    - Specificity: Be as specific as possible when assigning categories. Do not make assumptions. For example, if the feedback mentions a problem with payment, do not assume it’s related to the app unless explicitly stated.
-   - Use Existing Categories: Analyze the feedback and determine the most appropriate categories from the provided list that match the feedback.
+   - Use Appropriate Categories: Analyze the feedback and determine the most appropriate categories that match the feedback. The categories should follow a clear hierarchical structure, similar to:
+      - Level 1: General domain (e.g., "Service", "Products", "Mobile Application", "Payment")
+      - Level 2: Sub-domain or aspect (e.g., "Staff", "Communication", "Features")
+      - Level 3 and beyond: Specific details (e.g., "Staff Friendliness", "Connection Issues", "No response")
    - Creating New Categories: If the feedback does not fit into any existing category, create a new, specific one that captures the precise issue. It’s allowed to create a subcategory of an existing one, but not a duplicate category.
 
 2. **Avoid Forbidden Terms in Categories:**
