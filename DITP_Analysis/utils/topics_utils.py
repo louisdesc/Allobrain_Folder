@@ -33,7 +33,7 @@ def generate_topics_from_feedbacks(
 
     response = ""
     try:
-        response = request_llm(messages, model="claude-3-5-sonnet", max_tokens=2000)
+        response = request_llm(messages, model="gpt-4o-mini", max_tokens=2000)
         res = evaluate_object(response)
 
         return res.get("topics", [])
@@ -49,7 +49,7 @@ def topics_level_to_str(topics_level: Dict[int, str]) -> str:
     for _, level in topics_level.items():
         res.append(level)
     
-    return " > ".join(res)
+    return " : ".join(res)
 
 def classify_elementary_subject(
     elementary_subject: str,

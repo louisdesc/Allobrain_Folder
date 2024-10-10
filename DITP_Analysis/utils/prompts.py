@@ -492,13 +492,13 @@ I want to create more profesionnal topics for graph in my dashboard
 I will give you the list of the subjects. Generate the topics in a python list
 
 - A topic can have two level : 
-Example : "Service client > Réactivité aux demandes"
+Example : "Service client : Réactivité aux demandes"
 - A topic have to be neutral.
-Example of wrong topic : "Service client > Probleme avec les rendez-vous"
-Example of good topic: "Service client > Gestions des rendez-vous"
+Example of wrong topic : "Service : Probleme avec les rendez-vous"
+Example of good topic: "Service : Gestions des rendez-vous"
 - Name of topics have to be adapted to the sector, and looks professional
-Example of wrong topic : "Service > comportement"
-Example of good topic: "Service client > Qualité et écoute du service client"
+Example of wrong topic : "Service : comportement"
+Example of good topic: "Service : Écoute du service client"
 - try to not have a lot of unique level1, a level1 has to contains multiples level2
 
 Subjects:
@@ -506,7 +506,7 @@ Subjects:
 
 Output format should be a json:
 {{
-    "topics": ["topic1 > xxx", "topic2 > xxx", "topic3 > xxx", ...]
+    "topics": ["topic1 : xxx", "topic2 : xxx", "topic3 : xxx", ...]
 }}
 """
 
@@ -519,7 +519,7 @@ This is the subject:
 This is all the topics:
 {topics}
 
-- Topics are in this format : "level1 > level2"
+- Topics are in this format : "level1 : level2"
 - You can choose a full topic (two levels)  OR just a level1.
 - If this is not a perfect match, put null 
 

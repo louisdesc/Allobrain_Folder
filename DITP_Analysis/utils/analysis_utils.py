@@ -55,7 +55,7 @@ def check_duplicates(topics: List):
             {"role": "user", "content": PROMPT_DUPLICATES.format(topics=topics)},
         ]
 
-        res = request_llm(messages, model="claude-3-5-sonnet", max_tokens=2000)
+        res = request_llm(messages, model="gpt-4o-mini", max_tokens=2000)
         duplicates = evaluate_object(res)
         duplicates_replace = format_dico(duplicates)
 
@@ -66,55 +66,66 @@ def check_duplicates(topics: List):
         return {}
 
 
-def replace_elementary_subject_in_extraction(extraction: Dict, duplicates: Dict):
-    """Replace elementary subject in an extraction using a dictionnary of duplicates"""
-    for topic, replace in duplicates.items():
-        if "elementary_subjects" not in extraction:
-            continue
-
-        topics = extraction["elementary_subjects"]
-
-        if topic in topics:
-            topics.remove(topic)
-            topics.append(replace)
-
-        extraction["elementary_subjects"] = topics
-
-    return extraction
-
-
-def replace_elementary_subjects_in_feedback(
-    feedback_id: str,
-    extractions: List[Dict],
-    duplicates: Dict,
-    extraction_column: str = "extractions",
-):
-    """Replace elementary subjects in a feedback using a dictionnary of duplicates and update the feedback in mongo"""
-
-    for i in range(len(extractions)):
-        extraction = replace_elementary_subject_in_extraction(extractions[i], duplicates)
-        extractions[i] = extraction
-
-    update_feedback_in_mongo(feedback_id=feedback_id, updates={extraction_column: extractions})
-
-    return extractions
-
-
-def replace_elementary_subject_in_all_feedbacks(
+def replace_elementary_subjects_in_all_feedbacks(
     brand: str,
-    duplicates: Dict,
+    duplicates: Dict[str, str],
     extraction_column: str = "extractions",
 ):
-    """Replace elementary subjects in all feedbacks using a dictionnary of duplicates"""
+    """
+    Replace elementary subjects in all feedbacks for a given brand using a dictionary of duplicates.
 
-    # match brand and have extractions
+    This function fetches all feedbacks associated with the specified brand that contain extractions.
+    It then replaces any occurrence of elementary subjects specified in the duplicates dictionary
+    with their corresponding replacements within the extractions of each feedback.
+
+    Parameters:
+    - brand (str): The brand name for which feedbacks are to be processed.
+    - duplicates (Dict[str, str]): A dictionary where keys are the subjects to be replaced,
+      and values are the subjects to replace them with.
+    - extraction_column (str): The key in the feedback dictionary where extractions are stored.
+      Default is "extractions".
+
+    Returns:
+    - None
+    """
+
+    # Fetch feedbacks for the specified brand that have extractions
     feedbacks = get_feedbacks_with_extractions(brand, extraction_column)
 
+    # Iterate over each feedback
     for feedback in feedbacks:
-        feedback_id = feedback["_id"]
-        extractions = feedback[extraction_column]
-        extractions = replace_elementary_subjects_in_feedback(feedback_id, extractions, duplicates, extraction_column
-        )
+        feedback_id = feedback.get("_id")
+        extractions = feedback.get(extraction_column, [])
+
+        # Flag to check if we need to update the feedback
+        feedback_modified = False
+
+        # Iterate over each extraction in the feedback
+        for extraction in extractions:
+            # Check if 'elementary_subjects' exists in the extraction
+            subjects = extraction.get("elementary_subjects", [])
+            subjects_modified = False
+
+            # Replace subjects based on the duplicates dictionary
+            for old_subject, new_subject in duplicates.items():
+                if old_subject in subjects:
+                    # Remove the old subject and add the new one
+                    subjects.remove(old_subject)
+                    subjects.append(new_subject)
+                    subjects_modified = True
+
+            # If subjects were modified, update the extraction
+            if subjects_modified:
+                extraction["elementary_subjects"] = subjects
+                feedback_modified = True
+
+        # If any extraction was modified, update the feedback in the database
+        if feedback_modified:
+            update_feedback_in_mongo(
+                feedback_id=feedback_id,
+                updates={extraction_column: extractions}
+            )
+
 
 
 def clean_duplicates(
@@ -521,6 +532,7 @@ def process_analysis(
                 model,
                 should_update_mongo,
             )
+            print(classification_result)
             if classification_result.get("is_new_topic"):
                 duplicate_check_needed.add(extraction_sentiment)
 
@@ -533,7 +545,6 @@ def process_analysis(
             # Log the error instead of printing
             logging.error(f"Error classifying extraction: {e}")
             continue
-
     if should_update_mongo:
         update_feedbacks_with_classification(
             feedback_id,
