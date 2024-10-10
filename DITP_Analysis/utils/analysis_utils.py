@@ -151,7 +151,7 @@ def check_and_clean_duplicates_topics(
     if len(duplicates) > 0:
         print(f"Found {len(duplicates)} duplicates for {type}")
 
-        replace_elementary_subject_in_all_feedbacks(brand, duplicates, extraction_column)
+        replace_elementary_subjects_in_all_feedbacks(brand, duplicates, extraction_column)
         clean_duplicates(brand, type, duplicates)
 
 
