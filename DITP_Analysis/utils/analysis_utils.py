@@ -127,18 +127,6 @@ def replace_elementary_subjects_in_all_feedbacks(
             )
 
 
-
-def clean_duplicates(
-    brand: str,
-    type: str,
-    duplicates: Dict,
-):
-    """Remove duplicates from mongo and add new elementary subjects"""
-    # Remove duplicates
-    for topic, _ in duplicates.items():
-        remove_elementary_subject_from_mongo(brand, topic, type)
-
-
 def check_and_clean_duplicates_topics(
     brand: str,
     type: str,
@@ -152,7 +140,10 @@ def check_and_clean_duplicates_topics(
         print(f"Found {len(duplicates)} duplicates for {type}")
 
         replace_elementary_subjects_in_all_feedbacks(brand, duplicates, extraction_column)
-        clean_duplicates(brand, type, duplicates)
+
+        # Clean duplicate elementary_subject
+        for topic, _ in duplicates.items():
+            remove_elementary_subject_from_mongo(brand, topic, type)
 
 
 """  - - - - - - - - - - - - - - - - -
@@ -338,29 +329,37 @@ def create_topics_mapping(
     return topics
 
 
-def update_splitted_analysis(feedback_id: ObjectId, extractions: List, splitted_analysis_column):
-    splitted_analysis = get_field_value(feedback_id, splitted_analysis_column)
-    # to dict with 'extraction' in key and 'elementary_subjects' in value
-    extractions_dict = {x["extraction"]: x for x in extractions}
+def update_splitted_analysis(feedback_id: str, extractions: List[Dict], splitted_analysis_column: str) -> List[Dict]:
+    """
+    Update the splitted analysis for a given feedback ID by replacing or augmenting the extractions.
 
-    for text_part in splitted_analysis:
+    Parameters:
+    - feedback_id (str): The unique identifier of the feedback entry.
+    - extractions (List[Dict]): A list of extraction dictionaries to update.
+    - splitted_analysis_column (str): The name of the column in the database that stores splitted analysis.
 
-        if not 'extractions' in text_part:
-            continue
+    Returns:
+    - List[Dict]: The updated splitted analysis.
+    """
+    try:
+        splitted_analysis = get_field_value(feedback_id, splitted_analysis_column)
+        extractions_dict = {x["extraction"]: x for x in extractions}
 
-        all_extractions = []
+        for text_part in splitted_analysis:
+            if 'extractions' not in text_part:
+                continue
 
-        for extraction in text_part['extractions']:
+            # Use list comprehension to create the updated extractions list
+            text_part['extractions'] = [
+                extractions_dict.get(extraction['extraction'], extraction)
+                for extraction in text_part['extractions']
+            ]
 
-            if extractions_dict.get(extraction['extraction']):
-                cur_extraction = extractions_dict[extraction['extraction']]
-                all_extractions.append(cur_extraction)
-            else:
-                all_extractions.append(extraction)
-                
-        text_part['extractions'] = all_extractions
+        return splitted_analysis
 
-    return splitted_analysis
+    except Exception as e:
+        logging.error(f"Error updating splitted analysis for feedback_id {feedback_id}: {e}")
+        return splitted_analysis  # Return the original splitted_analysis in case of error
 
 def classify_extraction_with_topics(
     extraction_sentiment: str,
@@ -441,7 +440,7 @@ def classify_extraction_with_topics(
 
     try:
         response = request_llm(messages, model=model)
-        response_data = json.loads(response)  # Use json.loads instead of eval
+        response_data = json.loads(response)
 
         new_topic = response_data.get("new_topic")  # Extract new_topic early
         if new_topic:
@@ -451,7 +450,8 @@ def classify_extraction_with_topics(
             # If it's a new subject and `should_update_mongo` is True, push it to Mongo
             if should_update_mongo:
                 # Find corresponding topics from the classification schemes
-                mappings = update_mapping_for_one_elementary_subject(brand_name, new_topic)
+                # mappings = update_mapping_for_one_elementary_subject(brand_name, new_topic) # TODO: Mapping
+                mappings = []
                 # Push the new elementary subject to Mongo
                 push_new_elementary_subject_to_mongo(
                     brand_name,
@@ -533,18 +533,20 @@ def process_analysis(
                 should_update_mongo,
             )
             print(classification_result)
-            if classification_result.get("is_new_topic"):
-                duplicate_check_needed.add(extraction_sentiment)
+            #TODO : vient de comment
+            # if classification_result.get("is_new_topic"):
+            #     duplicate_check_needed.add(extraction_sentiment)
 
             topics = classification_result.get("topics", [])
             if topics:
                 extraction["elementary_subjects"] = topics
-                extraction['topics'] = map_elementary_subjects_with_topics(brand_name, topics[0])
+                # extraction['topics'] = map_elementary_subjects_with_topics(brand_name, topics[0])
 
         except Exception as e:
             # Log the error instead of printing
             logging.error(f"Error classifying extraction: {e}")
             continue
+    print(extractions)
     if should_update_mongo:
         update_feedbacks_with_classification(
             feedback_id,
