@@ -154,59 +154,52 @@ User feedback to process:
 """
 
 PROMPT_CLASSIF = """
-Task: You will receive a piece of user feedback in {language}.
-Your goal is to convert the comment into a structured JSON format by classifying it according to the provided specific categories. When classifying feedback, always choose the most precise and relevant category possible.
+**Task: Task: Classify User Feedback into a Structured JSON Format**
+Objective: You will receive a piece of user feedback in {language}. Your task is to convert this feedback into a structured JSON format by categorizing it accurately and precisely.
 
 Instructions:
-1. **Identify Matching Categories**: 
-   - Specificity: Be as specific as possible when assigning categories. Do not make assumptions. For example, if the feedback mentions a problem with payment, do not assume it’s related to the app unless explicitly stated.
-   - Use Appropriate Categories: Analyze the feedback and determine the most appropriate categories that match the feedback. The categories should follow a clear hierarchical structure, similar to:
+1. **Identify Categories**: 
+   - Specificity: Be specific; do not assume. E.g., if the feedback mentions a payment issue, don't infer it's app-related unless stated.
+   - The categories should follow a clear hierarchical structure, similar to:
       - Level 1: General domain (e.g., "Service", "Products", "Mobile Application", "Payment")
       - Level 2: Sub-domain or aspect (e.g., "Staff", "Communication", "Features")
       - Level 3 and beyond: Specific details (e.g., "Staff Friendliness", "Connection Issues", "No response")
    - Creating New Categories: If the feedback does not fit into any existing category, create a new, specific one that captures the precise issue. It’s allowed to create a subcategory of an existing one, but not a duplicate category.
 
 2. **Avoid Forbidden Terms in Categories:**
-
    - Do not use generic or broad terms in the category names, such as:
      - "Generic ..." / "Global ..." / "Général" / "Généraux"
-     - "Problem with the app" (without specifying what problem)
-     - "Global satisfaction with the service" (be more precise about which service)
+     - "Mobile Application : Problem" (without specifying what problem)
+     - "Global satisfaction" (be more precise about which service)
 
-3. **Category Structure:**
+3. **Multiple Categories:**
 
-   - Use a clear, hierarchical structure for categories. Each level must be understandable on its own.
-     - Correct: `Products : Quality : Coffee`
-     - Incorrect: `Products : Quality : Taste` (This is too vague)
-
-4. **Multiple Categories:**
-
-   - Only use multiple categories if the feedback addresses very different issues that are unrelated to each other.
+   - Use multiple categories if the feedback addresses very different issues that are unrelated to each other. But don't use one category with multiple problem.
    - Otherwise, stick to the most specific matching category.
 
-5. **No Duplicate Categories:**
+4. **No Duplicate Categories:**
 
    - Avoid creating new categories that are redundant with existing ones. Instead, refine the subcategory.
 
-6. **Handling Generic Feedback:**
+5. **Handling Generic Feedback:**
 
    - If the feedback is too generic and lacks sufficient details to categorize, return an empty list for the topics.
 
-7. **Contextual Understanding:**
+6. **Contextual Understanding:**
 
    - Use the full context of the comment to infer the most appropriate categories, even if the wording is not explicit.
    - Prioritize capturing the intended meaning rather than strictly following the exact wording.
 
-8. **Formatting the Response:**
+7. **Formatting the Response:**
 
-   - If the feedback matches existing categories, format the response as a JSON object with the fields `"justification"` and `"topics"`, where `"topics"` is a list of matching categories.
+   - If the feedback matches existing categories, format the response as a JSON object with the fields `"justification"` and `"topics"`, where `"topics"` is a list of one or multiple matching categories.
    - If the feedback does not match any existing category, suggest a new one by providing a JSON object with the fields `"justification"` and `"new_topic"`, where `"new_topic"` is the new category you propose.
    - **Do not include any personal data or irrelevant information in the response.**
 
 **Format the response** as an array of JSON objects with this structure:
 {{
   "justification": "<justification for the classification>",
-  "topics": ["<matching categories>"]
+  "topics": ["<matching categories with levels if needed>"]
 }}
 
 If a new category is needed:
@@ -227,6 +220,23 @@ Closest categories (in **{language}**):
 
 
 CLASSIF_EXAMPLES = [
+    {
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context='Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nTags Métiers: Dépôt de dossier,Demande d\'information\nPays de la demande: France\n\n**Full feedback**: Ants. Gouv  fr\nCa fait maintenant 3 mois que j ai fait une demande je n\'ais aucun signe de vie de la part de l ants. Je les est contacter par mail mais pas de réponse. Je les ai appeller, ils m\'ont dit "on fait remonter le dossier" mais toujours rien ne se passe. J\'ai beau envoyé des message sur mon compte ants, mon dossier est marqué en attente et je n ai aucune réponse.',
+        extraction_sentiment='negative',
+        extraction_text=' Je les est contacter par mail mais pas de réponse.',
+        closest_subjects=[],
+        language='french'
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback met en avant une absence de réponse suite à un contact par mail. Il ne semble pas y avoir de catégorie existante proche de ce sujet. Il est donc nécessaire de créer une nouvelle catégorie 'Suivi de Dossier : Absence de Réponse'.",
+    "new_topic": "Suivi de Dossier : Absence de Réponse"
+}'''
+},
     {
     "role": "user",
     "content": PROMPT_FEEDBACK_TEMPLATE.format(
@@ -261,7 +271,7 @@ CLASSIF_EXAMPLES = [
             "Suivi de Dossier : Délai de Traitement : Carte nationale d'identité (CNI)",
             "Suivi de Dossier : Erreurs Administratives",
             "Assistance : Manque de Support",
-            "Accessibilité : Coût Supplémentaire"
+            "Accessibilité : Déplacement nécessaire"
         ],
         language="french"
     )
@@ -294,7 +304,7 @@ CLASSIF_EXAMPLES = [
     "role": "assistant",
     "content": '''{
     "justification": "Le feedback signale des pratiques de démarchage malgré une inscription à Bloctel, ce qui indique une violation du service attendu par Bloctel. Aucune des catégories existantes ne couvre spécifiquement ce problème.",
-    "new_topic": "Bloctel : Démarchage Abusif malgré Inscription"
+    "new_topic": "Bloctel : Démarchage Abusif"
 }''',
 },
 {
@@ -326,8 +336,8 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="On m'a répondu de manière brusque sans aucune courtoisie",
         closest_subjects=[
-            "Accueil : Manque de Courtoisie",
-            "Personnel : Comportement Inapproprié",
+            "Service : Personnel : Amabilité du personnel",
+            "Service : Personnel : Comportement Inapproprié",
             "Service : Communication : Absence de Réponse",
             "Service : Assistance Incomplète",
             "Service : Communication : Manque de Clarté",
@@ -338,8 +348,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "Le feedback décrit un comportement inapproprié de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. La catégorie 'Personnel : Comportement Inapproprié' est plus appropriée pour refléter la nature de ce retour.",
-    "topics": ["Personnel : Comportement Inapproprié"]
+    "justification": "Le feedback décrit un comportement inapproprié et un manque d'amabilité de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. Les catégories 'Personnel : Comportement Inapproprié' et 'Service : Personnel : Amabilité du personnel' sont les plus appropriées pour refléter la nature de ce retour.",
+    "topics": ["Service : Personnel : Amabilité du personnel", "Service : Personnel : Comportement Inapproprié"]
 }''',
 },
 {
@@ -361,7 +371,7 @@ CLASSIF_EXAMPLES = [
     "role": "assistant",
     "content": '''{
     "justification": "Le feedback indique une absence de réponse concernant l'enregistrement de la demande de retraite complémentaire et les informations de paiement, ce qui correspond à un manque de suivi du dossier.",
-    "topics": ["Suivi de dossier : Absence de réponse"]
+    "topics": ["Suivi de dossier : Absence de réponse", "Service : Communication : Manque de Clarté"]
 }'''
 },
 {
@@ -385,9 +395,72 @@ CLASSIF_EXAMPLES = [
     "justification": "Le retour met en avant une mauvaise compréhension des exigences concernant les documents à fournir, indiquant un manque de clarté dans la communication de la CAF.",
     "topics": ["Service : Communication : Manque de clarté"]
 }'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context='Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nTags Métiers: Dépôt de dossier,Demande d\'information\nPays de la demande: France\n\n**Full feedback**: Ants. Gouv  fr\nCa fait maintenant 3 mois que j ai fait une demande je n\'ais aucun signe de vie de la part de l ants. Je les est contacter par mail mais pas de réponse. Je les ai appeller, ils m\'ont dit "on fait remonter le dossier" mais toujours rien ne se passe. J\'ai beau envoyé des message sur mon compte ants, mon dossier est marqué en attente et je n ai aucune réponse.',
+        extraction_sentiment='negative',
+        extraction_text="Ca fait maintenant 3 mois que j ai fait une demande je n'ais aucun signe de vie de la part de l ants.",
+        closest_subjects=[
+            "Suivi de dossier : Délai de traitement",
+            "Suivi de dossier : Absence de réponse",
+            "Service : Communication : Absence de réponse"
+        ],
+        language='french'
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback décrit une attente prolongée et un manque de communication concernant une demande en cours. 'Suivi de Dossier : Délai de traitement' est pertinent car l'attente dépasse trois mois. De plus, le feedback mentionne explicitement l'absence de réponse de l'ANTS, ce qui correspond à 'Suivi de Dossier : Absence de Réponse'.",
+    "topics": ["Suivi de Dossier : Délai de traitement", "Suivi de Dossier : Absence de Réponse"]
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context='Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nTags Métiers: Dépôt de dossier,Demande d\'information\nPays de la demande: France\n\n**Full feedback**: Ants. Gouv  fr\nCa fait maintenant 3 mois que j ai fait une demande je n\'ais aucun signe de vie de la part de l ants. Je les est contacter par mail mais pas de réponse. Je les ai appeller, ils m\'ont dit "on fait remonter le dossier" mais toujours rien ne se passe. J\'ai beau envoyé des message sur mon compte ants, mon dossier est marqué en attente et je n ai aucune réponse.',
+        extraction_sentiment='negative',
+        extraction_text=' ils m\'ont dit "on fait remonter le dossier" mais toujours rien ne se passe.',
+        closest_subjects=[
+            "Service : Communication : Manque de suivi",
+            "Suivi de dossier : Incomplet",
+            "Service : Communication : Manque de clarté"
+        ],
+        language='french'
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback souligne une communication insuffisante et peu claire après avoir été informé que le dossier serait remonté, sans action concrète par la suite. La catégorie 'Service : Communication : Manque de clarté' correspond à cette situation.",
+    "topics": ["Service : Communication : Manque de clarté"]
+}'''
+},
+{
+    "role": "user",
+    "content": PROMPT_FEEDBACK_TEMPLATE.format(
+        brand_context='Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nTags Métiers: Dépôt de dossier,Demande d\'information\nPays de la demande: France\n\n**Full feedback**: Ants. Gouv  fr\nCa fait maintenant 3 mois que j ai fait une demande je n\'ais aucun signe de vie de la part de l ants. Je les est contacter par mail mais pas de réponse. Je les ai appeller, ils m\'ont dit "on fait remonter le dossier" mais toujours rien ne se passe. J\'ai beau envoyé des message sur mon compte ants, mon dossier est marqué en attente et je n ai aucune réponse.',
+        extraction_sentiment='negative',
+        extraction_text=" J'ai beau envoyé des message sur mon compte ants,",
+        closest_subjects=[
+            "Service : Personnel : Information fourni",
+            "Service : Communication : Absence de réponse",
+            "Application mobile : Notifications : Nombreuses",
+            "Application mobile : Facilité d'utilisation"
+        ],
+        language='french'
+    )
+},
+{
+    "role": "assistant",
+    "content": '''{
+    "justification": "Le feedback mentionne l'envoi de messages sur le compte sans mentionner de réponse ni de résultat concret. Cependant, il ne fournit pas assez de détails pour le lier à une catégorie existante. Une nouvelle catégorie pourrait être envisagée si le problème est récurrent.",
+    "topics": []
+}'''
 }
 ]
-
 
 
 PROMPT_DUPLICATES = """    

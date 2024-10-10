@@ -1,3 +1,4 @@
+import pandas as pd
 import logging
 from typing import List, Dict, Any
 from scipy.spatial import distance
@@ -147,6 +148,31 @@ def check_and_clean_duplicates_topics(
             A N A L Y S I S
  - - - - - - - - - - - - - - - - - """
 
+def format_ligne(ligne):
+    # Fonction interne pour gérer les valeurs manquantes
+    def extraire_champ(champ, allow_empty=False):
+        return champ if pd.notnull(champ) and (allow_empty or champ != 'N/A') else None
+
+    # Champs obligatoires et facultatifs
+    champs = [
+        ("Intitulé Structure 1", ligne.get("intitule_structure_1"), False),
+        ("Intitulé Structure 2", ligne.get("intitule_structure_2"), True),
+        ("Tags Métiers", ligne.get("tags_metiers"), True),
+        ("Pays de la demande", ligne.get("pays"), False),
+        ("\n**Full feedback**", ligne.get("verbatims"), False),
+    ]
+    
+    # Initialisation des lignes avec une phrase fixe
+    lignes = ["Feedbacks are from French public services."]
+    
+    # Génération des lignes dynamiques si les champs sont présents
+    for label, champ, allow_empty in champs:
+        valeur = extraire_champ(champ, allow_empty)
+        if valeur:
+            lignes.append(f"{label}: {valeur}")
+    
+    # Retour du résultat formaté
+    return "\n".join(lignes)
 
 def find_closest_elementary_subjects(extraction_text: str, subject_names: List[str], subject_embeddings: List[List[float]], top_n: int = 5) -> List[str]:
     """
@@ -326,8 +352,9 @@ def update_splitted_analysis(feedback_id: ObjectId, extractions: List, splitted_
     return splitted_analysis
 
 def classify_extraction_with_topics(
-    extraction_text: str,
     extraction_sentiment: str,
+    extraction_text: str,
+    extraction_subjects: str,
     language: str,
     brand_name: str,
     brand_context: str,
@@ -342,8 +369,9 @@ def classify_extraction_with_topics(
     for classification. If a new topic is identified, it can be added to the database.
 
     Parameters:
-    - extraction_text (str): The text extraction to classify.
     - extraction_sentiment (str): The sentiment of the extraction (e.g., positive or negative).
+    - extraction_text (str): The text extraction to classify.
+    - extraction_subjects (str): The subject of the extraction
     - language (str): The language in which the extraction is written.
     - brand_name (str): The name of the brand associated with the extraction.
     - brand_context (str): A context of the brand.
@@ -365,11 +393,23 @@ def classify_extraction_with_topics(
 
     # Find the closest subjects based on embeddings similarity
     closest_subjects = find_closest_elementary_subjects(
-        extraction_text,
+        extraction_subjects,
         subject_names,
         subject_embeddings,
         top_n=5,
     )
+    # print(
+    # '{\n'
+    # '    "role": "user",\n'
+    # '    "content": PROMPT_FEEDBACK_TEMPLATE.format(\n'
+    # f'        brand_context={repr(brand_context)},\n'
+    # f'        extraction_sentiment={repr(extraction_sentiment)},\n'
+    # f'        extraction_text={repr(extraction_text)},\n'
+    # f'        closest_subjects={repr(closest_subjects)},\n'
+    # f'        language={repr(language)}\n'
+    # '    )\n'
+    # '}'
+    # )
 
     messages = (
         [{"role": "user", "content": PROMPT_CLASSIF}]
@@ -379,7 +419,7 @@ def classify_extraction_with_topics(
                 "role": "user",
                 "content": PROMPT_FEEDBACK_TEMPLATE.format(
                     brand_context=brand_context,
-                    extraction_sentiment=extraction_sentiment.capitalize(),
+                    extraction_sentiment=extraction_sentiment,
                     extraction_text=extraction_text,
                     closest_subjects=closest_subjects,
                     language=language,
@@ -431,12 +471,12 @@ def classify_extraction_with_topics(
 
 
 
-def classify_feedback_extractions(
+def process_analysis(
     feedback_id: str,
     extractions: List[Dict],
+    brand_context: str,
     model: str,
     brand_name: str,
-    brand_context: str,
     language: str,
     extractions_column: str = "extractions",
     should_update_mongo: bool = True,
@@ -463,16 +503,18 @@ def classify_feedback_extractions(
     duplicate_check_needed = set()
 
     for extraction in extractions:
-        sentiment = extraction.get("sentiment", "").lower()
-        extraction_text = extraction.get("extraction", "")
+        extraction_sentiment = extraction.get("sentiment", "").lower()
+        extraction_text = extraction.get("text", "")
+        extraction_subjects = extraction.get("extraction", "")
 
-        if sentiment == "neutral":
+        if extraction_sentiment == "neutral":
             continue
 
         try:
             classification_result = classify_extraction_with_topics(
+                extraction_sentiment,
                 extraction_text,
-                sentiment,
+                extraction_subjects,
                 language,
                 brand_name,
                 brand_context,
@@ -480,7 +522,7 @@ def classify_feedback_extractions(
                 should_update_mongo,
             )
             if classification_result.get("is_new_topic"):
-                duplicate_check_needed.add(sentiment)
+                duplicate_check_needed.add(extraction_sentiment)
 
             topics = classification_result.get("topics", [])
             if topics:
@@ -506,18 +548,29 @@ def classify_feedback_extractions(
         "extractions": extractions
     }
 
-def run_analysis_full_parallel(
-        texts_with_ids: List[Dict],
-        brand: str,
-        brand_descr: str,
+def process_analysis_in_parallel(
+        feedbacks,
+        brand_name: str,
         language: str,
         model='gpt-4o-mini',
         save_to_mongo=False
 ):
-    print('t')
     res = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(classify_feedback_extractions, x.get('_id'), x.get('extractions'), model, brand, brand_descr, language, 'extractions', save_to_mongo) for x in texts_with_ids]
+        futures = [
+            executor.submit(
+                process_analysis,
+                row['_id'],
+                row['extractions'],
+                row['brand_context'],
+                model,
+                brand_name,
+                language,
+                'extractions',
+                save_to_mongo
+            )
+        for _, row in feedbacks.iterrows()
+        ]
 
         chunk_size = 20
         for i in tqdm(range(0, len(futures), chunk_size), desc="Processing chunks"):
