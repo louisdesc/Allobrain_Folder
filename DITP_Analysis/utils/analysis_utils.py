@@ -29,8 +29,8 @@ from utils.prompts import (
     CLASSIF_EXAMPLES,
     PROMPT_FEEDBACK_TEMPLATE,
     PROMPT_DUPLICATES_INSIDE_FEEDBACKS,
+    PROMPT_MAP_TO_EXISTING_TOPICS
 )
-
 
 
 """  - - - - - - - - - - - - - - - - -
@@ -72,35 +72,103 @@ def check_duplicatessss(topics: List):
     except Exception as e:
         print("[check_duplicates()]", e)
         return {}
+
+def rename_duplicates(feedbacks: List[Dict], existing_elementary_subjects_dict: Dict[str, List[str]]) -> List[Dict]:
+    # Extract elementary_subjects and sentiments from the feedbacks
+    topics_per_sentiment = {}
+    for feedback in feedbacks:
+        sentiment = feedback.get('sentiment', 'UNKNOWN').upper()
+        if sentiment not in topics_per_sentiment:
+            topics_per_sentiment[sentiment] = set()
+        topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
+        topics_per_sentiment[sentiment].add(topic)
     
-def rename_duplicates(feedbacks: List[Dict]) -> List[Dict]:
-    # Extract elementary_subjects from the feedbacks, handling empty lists
-    topics = [
-        feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
-        for feedback in feedbacks
-    ]
-
-    # Use the mapping_duplicates function to get the merged topics
-    merged_topics = mapping_duplicates(topics)
-
-    # Create a mapping of old topics to final topics
-    topic_mapping = {}
-    for final_topic, merged in merged_topics.items():
-        for topic in merged:
-            topic_mapping[topic] = final_topic
-
-    # Update feedbacks with the new elementary_subjects
+    # For each sentiment, map duplicates within feedbacks
+    topic_mapping_internal = {}
+    for sentiment, topics in topics_per_sentiment.items():
+        # Map duplicates within feedbacks using mapping_duplicates function
+        merged_topics = mapping_duplicates(list(topics))
+        
+        # Create a mapping of old topics to final topics
+        for final_topic, merged in merged_topics.items():
+            for topic in merged:
+                topic_mapping_internal[topic] = final_topic
+    
+    # Update feedbacks with the new elementary_subjects after removing internal duplicates
     updated_feedbacks = []
     for feedback in feedbacks:
         old_topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
-        
-        # Use get to avoid KeyError
-        new_topic = topic_mapping.get(old_topic, old_topic)  # Fallback to old_topic if not found
+        new_topic = topic_mapping_internal.get(old_topic, old_topic)  # Fallback to old_topic if not found
         updated_feedback = feedback.copy()
         updated_feedback['elementary_subjects'] = [new_topic] if new_topic != 'Unknown Topic' else []
         updated_feedbacks.append(updated_feedback)
+    
+    # Now, map the new topics to existing ones in the database, considering the sentiment
+    # First, collect all unique new topics per sentiment
+    new_topics_per_sentiment = {}
+    for feedback in updated_feedbacks:
+        sentiment = feedback.get('sentiment', 'UNKNOWN').upper()
+        if sentiment not in new_topics_per_sentiment:
+            new_topics_per_sentiment[sentiment] = set()
+        topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
+        new_topics_per_sentiment[sentiment].add(topic)
+    
+    # For each sentiment, map new topics to existing topics
+    mapped_topics = {}
+    for sentiment, new_topics in new_topics_per_sentiment.items():
+        existing_topics = existing_elementary_subjects_dict.get(sentiment, [])
+        # Map new topics to existing topics using LLM
+        topic_mapping = map_to_existing_elementary_subjects(list(new_topics), existing_topics)
+        # Update the overall mapping
+        mapped_topics.update(topic_mapping)
+    
+    # Update feedbacks with the mapped topics
+    final_feedbacks = []
+    for feedback in updated_feedbacks:
+        old_topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
+        mapped_topic = mapped_topics.get(old_topic, old_topic)  # Fallback to old_topic if not found
+        feedback['elementary_subjects'] = [mapped_topic] if mapped_topic != 'Unknown Topic' else []
+        final_feedbacks.append(feedback)
+    
+    return final_feedbacks
 
-    return updated_feedbacks
+def map_to_existing_elementary_subjects(new_topics: List[str], existing_topics: List[str]) -> Dict[str, str]:
+    """Map new topics to existing topics using LLM"""
+    if not existing_topics:
+        # No existing topics, return identity mapping
+        return {topic: topic for topic in new_topics}
+    try:
+        # Prepare the prompt
+        prompt = PROMPT_MAP_TO_EXISTING_TOPICS.format(new_topics=new_topics, existing_topics=existing_topics)
+        messages = [
+            {"role": "user", "content": prompt},
+        ]
+        # Call LLM
+        assistant_message = request_llm(messages, model="gpt-4o-mini", max_tokens=4000, response_format={"type": "json_object"})
+        
+        # Parse response
+        try:
+            mapped_topics = json.loads(assistant_message)
+        except json.JSONDecodeError:
+            # Try to extract JSON from the response
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', assistant_message)
+            if json_match:
+                json_content = json_match.group()
+                mapped_topics = json.loads(json_content)
+            else:
+                print("[map_to_existing_elementary_subjects()] No JSON object found in the assistant's response.")
+                print("Assistant's response:", assistant_message)
+                mapped_topics = {topic: topic for topic in new_topics}
+        return mapped_topics
+
+    except Exception as e:
+        print(f"[map_to_existing_elementary_subjects()] {e}")
+        return {topic: topic for topic in new_topics}
+
+
+
+
 
 def mapping_duplicates(topics: List[str]) -> Dict[str, List[str]]:
     """Map duplicates in a list of topics using LLM"""
