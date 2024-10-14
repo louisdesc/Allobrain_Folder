@@ -28,7 +28,7 @@ from utils.prompts import (
     PROMPT_CLASSIF,
     CLASSIF_EXAMPLES,
     PROMPT_FEEDBACK_TEMPLATE,
-    PROMPT_DUPLICATES,
+    PROMPT_DUPLICATES_INSIDE_FEEDBACKS,
 )
 
 
@@ -37,6 +37,13 @@ from utils.prompts import (
          D U P L I C A T E S
  - - - - - - - - - - - - - - - - - """
 
+def evaluate_object(text: str, delim: List[str] = ["{", "}"]) -> Dict:
+    """
+    Evaluate the text as a python object with specific delimiters
+    """
+    first = text.find(delim[0])
+    last = text.rfind(delim[1])
+    return eval(text[first : last + 1])
 
 def format_dico(output: Dict) -> Dict:
     result = {}
@@ -48,14 +55,15 @@ def format_dico(output: Dict) -> Dict:
     return result
 
 
-def check_duplicates(topics: List):
+def check_duplicatessss(topics: List):
     """Check duplicates in a list of topics using LLM"""
     try:
         messages = [
-            {"role": "user", "content": PROMPT_DUPLICATES.format(topics=topics)},
+            {"role": "user", "content": PROMPT_DUPLICATES_INSIDE_FEEDBACKS.format(topics=topics)},
         ]
 
-        res = request_llm(messages, model="gpt-4o-mini", max_tokens=2000)
+        res = request_llm(messages, model="gpt-4o-mini", max_tokens=3000)
+
         duplicates = evaluate_object(res)
         duplicates_replace = format_dico(duplicates)
 
@@ -63,6 +71,68 @@ def check_duplicates(topics: List):
 
     except Exception as e:
         print("[check_duplicates()]", e)
+        return {}
+    
+def rename_duplicates(feedbacks: List[Dict]) -> List[Dict]:
+    # Extract elementary_subjects from the feedbacks, handling empty lists
+    topics = [
+        feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
+        for feedback in feedbacks
+    ]
+
+    # Use the mapping_duplicates function to get the merged topics
+    merged_topics = mapping_duplicates(topics)
+
+    # Create a mapping of old topics to final topics
+    topic_mapping = {}
+    for final_topic, merged in merged_topics.items():
+        for topic in merged:
+            topic_mapping[topic] = final_topic
+
+    # Update feedbacks with the new elementary_subjects
+    updated_feedbacks = []
+    for feedback in feedbacks:
+        old_topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
+        
+        # Use get to avoid KeyError
+        new_topic = topic_mapping.get(old_topic, old_topic)  # Fallback to old_topic if not found
+        updated_feedback = feedback.copy()
+        updated_feedback['elementary_subjects'] = [new_topic] if new_topic != 'Unknown Topic' else []
+        updated_feedbacks.append(updated_feedback)
+
+    return updated_feedbacks
+
+def mapping_duplicates(topics: List[str]) -> Dict[str, List[str]]:
+    """Map duplicates in a list of topics using LLM"""
+    try:
+        # Format the prompt by replacing the {topics} placeholder
+        messages = [
+            {"role": "user", "content": PROMPT_DUPLICATES_INSIDE_FEEDBACKS.format(topics=str(topics))},
+        ]
+
+        # Request the LLM with the provided messages
+        assistant_message = request_llm(messages, model="gpt-4o-mini", max_tokens= 4000, response_format={"type": "json_object"})
+
+        # Now parse the assistant's message to extract the JSON
+        # Since the assistant is instructed to output only the JSON object, we can parse directly
+        try:
+            merged_topics = json.loads(assistant_message)
+        except json.JSONDecodeError:
+            # If parsing fails, attempt to extract JSON using regex
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', assistant_message)
+            if json_match:
+                json_content = json_match.group()
+                merged_topics = json.loads(json_content)
+            else:
+                print("[mapping_duplicates()] No JSON object found in the assistant's response.")
+                print("Assistant's response:", assistant_message)
+                merged_topics = {}
+        
+        return merged_topics
+    
+    except Exception as e:
+        print(f"[mapping_duplicates()] {e}")
         return {}
 
 
@@ -240,8 +310,10 @@ def update_feedbacks_with_classification(
 ):
     # update the splitted analysis
     splitted_analysis = update_splitted_analysis(feedback_id, extractions, splitted_analysis_column)
-    # update the topics
-    topics = create_topics_mapping(extractions, brand)
+    
+    # TODO: TOPICS # update the topics
+    # topics = create_topics_mapping(extractions, brand)
+    topics = []
 
     # update the feedback
     update_feedback_in_mongo(
@@ -308,30 +380,27 @@ def map_elementary_subjects_with_topics(
     return topics
 
 
-def create_topics_mapping(
-    extractions: List,
-    brand: str,
-):
+def create_topics_mapping(extractions: List, brand: str):
     '''
     Create the topics mapping for a feedback based on the elementary subjects
     '''
     topics = []
+    # TODO: Mapping
+    # for extraction in extractions:
+    #     elementary_subjects = extraction.get("elementary_subjects", [])
 
-    for extraction in extractions:
-        elementary_subjects = extraction.get("elementary_subjects", [])
+    #     for elementary_subject in elementary_subjects:
+    #         # get the topics associated with the elementary subject
+    #         current_topics = map_elementary_subjects_with_topics(brand, elementary_subject)
 
-        for elementary_subject in elementary_subjects:
-            # get the topics associated with the elementary subject
-            current_topics = map_elementary_subjects_with_topics(brand, elementary_subject)
-
-            topics.extend(current_topics)
+    #         topics.extend(current_topics)
 
     return topics
 
 
 def update_splitted_analysis(feedback_id: str, extractions: List[Dict], splitted_analysis_column: str) -> List[Dict]:
     """
-    Update the splitted analysis for a given feedback ID by replacing or augmenting the extractions.
+    AI comment : Update the splitted analysis for a given feedback ID by replacing or augmenting the extractions.
 
     Parameters:
     - feedback_id (str): The unique identifier of the feedback entry.
@@ -479,6 +548,111 @@ def classify_extraction_with_topics(
             "topics": [],
             "error": str(e),
         }
+    
+def get_elementary_subjects_for_part_of_feedback(
+    extractions: Dict,
+    language: str,
+    brand_name: str,
+    brand_context: str,
+    model: str,
+    should_update_mongo: bool = True
+) -> Dict[str, Any]:
+    """
+    Classify a given text extraction and identify associated topics.
+
+    This function retrieves elementary subjects related to a specified brand and category,
+    finds the closest subjects based on their embeddings, and sends a request to a language model
+    for classification. If a new topic is identified, it can be added to the database.
+
+    Parameters:
+    - extractions (Dict):
+    - language (str): The language in which the extraction is written.
+    - brand_name (str): The name of the brand associated with the extraction.
+    - brand_context (str): A context of the brand.
+    - model (str): The model to use for classification.
+    - should_update_mongo (bool): Indicates whether to update the database with new topics. Defaults to True.
+
+    Returns:
+    - Dict[str, Any]: A dictionary containing:
+        - "topics": A list of identified topics related to the extraction.
+        - "justification": The reasoning provided by the model for the classification.
+        - "is_new_topic": A boolean indicating whether a new topic was created.
+        - "error": An error message if an exception occurred during processing.
+    """
+    extraction_sentiment=extractions['sentiment']
+    extraction_subjects=extractions['extraction']
+    extraction_text=extractions['text']
+
+    # Retrieve all elementary subjects corresponding to the brand and category
+    elementary_subjects = get_elementary_subjects(brand_name, extraction_sentiment)
+    subject_names = [subject["elementary_subject"] for subject in elementary_subjects]
+    subject_embeddings = [subject["embeddings"] for subject in elementary_subjects]
+
+    # Find the closest subjects based on embeddings similarity
+    closest_subjects = find_closest_elementary_subjects(
+        extraction_subjects,
+        subject_names,
+        subject_embeddings,
+        top_n=5,
+    )
+
+
+    messages = (
+        [{"role": "user", "content": PROMPT_CLASSIF}]
+        + CLASSIF_EXAMPLES
+        + [
+            {
+                "role": "user",
+                "content": PROMPT_FEEDBACK_TEMPLATE.format(
+                    brand_context=brand_context,
+                    extraction_sentiment=extraction_sentiment,
+                    extraction_text=extraction_text,
+                    closest_subjects=closest_subjects,
+                    language=language,
+                ),
+            }
+        ]
+    )
+
+    try:
+        response = request_llm(messages, model=model)
+        response_data = json.loads(response)
+
+        new_topic = response_data.get("new_topic")  # Extract new_topic early
+        if new_topic:
+            # Get the embedding of the new topic
+            embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
+
+            # If it's a new subject and `should_update_mongo` is True, push it to Mongo
+            if should_update_mongo:
+                # Find corresponding topics from the classification schemes
+                # mappings = update_mapping_for_one_elementary_subject(brand_name, new_topic) # TODO: Mapping
+                mappings = []
+                # Push the new elementary subject to Mongo
+                push_new_elementary_subject_to_mongo(
+                    brand_name,
+                    extraction_sentiment,
+                    new_topic,
+                    embedding,
+                    mappings,
+                )
+
+            topics = [new_topic]
+            is_new_topic = True
+        else:
+            topics = response_data.get("topics", [])
+            is_new_topic = False
+
+        extractions['elementary_subjects'] = topics
+        extractions['is_new_topic'] = is_new_topic
+        return extractions, topics
+
+    except Exception as e:
+        logging.error(f"Error in classify_extraction_with_topics: {e}")  # Log the error
+        return {
+            "topics": [],
+            "error": str(e),
+        }
 
 
 
@@ -513,7 +687,7 @@ def process_analysis(
 
     duplicate_check_needed = set()
 
-    for extraction in extractions:
+    for i, extraction in enumerate(extractions):
         extraction_sentiment = extraction.get("sentiment", "").lower()
         extraction_text = extraction.get("text", "")
         extraction_subjects = extraction.get("extraction", "")
@@ -532,21 +706,22 @@ def process_analysis(
                 model,
                 should_update_mongo,
             )
-            print(classification_result)
-            #TODO : vient de comment
-            # if classification_result.get("is_new_topic"):
-            #     duplicate_check_needed.add(extraction_sentiment)
+            # ^ update the extractions table
+            print("Classification_result:", classification_result)
+
+            if classification_result.get("is_new_topic"):
+                duplicate_check_needed.add(extraction_sentiment)
 
             topics = classification_result.get("topics", [])
             if topics:
-                extraction["elementary_subjects"] = topics
-                # extraction['topics'] = map_elementary_subjects_with_topics(brand_name, topics[0])
+                extractions[i]["elementary_subjects"] = topics
+                # extraction['topics'] = map_elementary_subjects_with_topics(brand_name, topics[0]) # TODO: Topics comment
 
         except Exception as e:
             # Log the error instead of printing
             logging.error(f"Error classifying extraction: {e}")
             continue
-    print(extractions)
+    print(feedback_id, extractions)
     if should_update_mongo:
         update_feedbacks_with_classification(
             feedback_id,
