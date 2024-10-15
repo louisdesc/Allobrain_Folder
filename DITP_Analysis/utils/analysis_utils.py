@@ -28,7 +28,7 @@ from utils.prompts import (
     PROMPT_CLASSIF,
     CLASSIF_EXAMPLES,
     PROMPT_FEEDBACK_TEMPLATE,
-    PROMPT_DUPLICATES_INSIDE_FEEDBACKS,
+    PROMPT_REMOVE_DUPLICATES,
     PROMPT_MAP_TO_EXISTING_TOPICS
 )
 
@@ -55,153 +55,179 @@ def format_dico(output: Dict) -> Dict:
     return result
 
 
-def check_duplicatessss(topics: List):
-    """Check duplicates in a list of topics using LLM"""
-    try:
-        messages = [
-            {"role": "user", "content": PROMPT_DUPLICATES_INSIDE_FEEDBACKS.format(topics=topics)},
-        ]
+# def check_duplicatessss(topics: List):
+#     """Check duplicates in a list of topics using LLM"""
+#     try:
+#         messages = [
+#             {"role": "user", "content": PROMPT_REMOVE_DUPLICATES.format(topics=topics)},
+#         ]
 
-        res = request_llm(messages, model="gpt-4o-mini", max_tokens=3000)
+#         res = request_llm(messages, model="gpt-4o-mini", max_tokens=3000)
 
-        duplicates = evaluate_object(res)
-        duplicates_replace = format_dico(duplicates)
+#         duplicates = evaluate_object(res)
+#         duplicates_replace = format_dico(duplicates)
 
-        return duplicates_replace
+#         return duplicates_replace
 
-    except Exception as e:
-        print("[check_duplicates()]", e)
-        return {}
+#     except Exception as e:
+#         print("[check_duplicates()]", e)
+#         return {}
 
-def rename_duplicates(feedbacks: List[Dict], existing_elementary_subjects_dict: Dict[str, List[str]]) -> List[Dict]:
-    # Extract elementary_subjects and sentiments from the feedbacks
-    topics_per_sentiment = {}
+def process_feedback_topics(
+    feedbacks: List[Dict],
+    existing_topics_by_sentiment: Dict[str, List[str]]
+) -> List[Dict]:
+    """
+    Processes feedbacks to remove duplicates and map topics to existing ones.
+
+    Parameters:
+        feedbacks: List of feedback dictionaries.
+        existing_topics_by_sentiment: Dictionary mapping sentiments to existing topics.
+
+    Returns:
+        List of updated feedback dictionaries.
+    """
+    # print(f"Feedbacks: {feedbacks}")
+    # print(f"Existing topcs: {existing_topics_by_sentiment}")
+    # Group topics by sentiment
+    topics_by_sentiment = {}
     for feedback in feedbacks:
         sentiment = feedback.get('sentiment', 'UNKNOWN').upper()
-        if sentiment not in topics_per_sentiment:
-            topics_per_sentiment[sentiment] = set()
-        topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
-        topics_per_sentiment[sentiment].add(topic)
-    
-    # For each sentiment, map duplicates within feedbacks
-    topic_mapping_internal = {}
-    for sentiment, topics in topics_per_sentiment.items():
-        # Map duplicates within feedbacks using mapping_duplicates function
-        merged_topics = mapping_duplicates(list(topics))
-        
-        # Create a mapping of old topics to final topics
-        for final_topic, merged in merged_topics.items():
-            for topic in merged:
-                topic_mapping_internal[topic] = final_topic
-    
-    # Update feedbacks with the new elementary_subjects after removing internal duplicates
-    updated_feedbacks = []
+        topics_by_sentiment.setdefault(sentiment, set())
+        topic = feedback['elementary_subjects'][0] if feedback.get('elementary_subjects') else 'Unknown Topic'
+        topics_by_sentiment[sentiment].add(topic)
+
+    # Remove internal duplicates within feedbacks
+    internal_topic_mapping = {}
+    for sentiment, topics in topics_by_sentiment.items():
+        merged_topics = identify_and_merge_duplicates(list(topics))
+        for final_topic, topic_list in merged_topics.items():
+            for topic in topic_list:
+                internal_topic_mapping[topic] = final_topic
+
+    # Update feedbacks with internal duplicates removed
+    deduplicated_feedbacks = []
     for feedback in feedbacks:
-        old_topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
-        new_topic = topic_mapping_internal.get(old_topic, old_topic)  # Fallback to old_topic if not found
+        original_topic = feedback['elementary_subjects'][0] if feedback.get('elementary_subjects') else 'Unknown Topic'
+        new_topic = internal_topic_mapping.get(original_topic, original_topic)
         updated_feedback = feedback.copy()
         updated_feedback['elementary_subjects'] = [new_topic] if new_topic != 'Unknown Topic' else []
-        updated_feedbacks.append(updated_feedback)
-    
-    # Now, map the new topics to existing ones in the database, considering the sentiment
-    # First, collect all unique new topics per sentiment
-    new_topics_per_sentiment = {}
-    for feedback in updated_feedbacks:
+        deduplicated_feedbacks.append(updated_feedback)
+
+    # print(f"deduplicated_feedbacks: {deduplicated_feedbacks}")
+
+    # Map new topics to existing topics
+    new_topics_by_sentiment = {}
+    for feedback in deduplicated_feedbacks:
         sentiment = feedback.get('sentiment', 'UNKNOWN').upper()
-        if sentiment not in new_topics_per_sentiment:
-            new_topics_per_sentiment[sentiment] = set()
-        topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
-        new_topics_per_sentiment[sentiment].add(topic)
-    
-    # For each sentiment, map new topics to existing topics
-    mapped_topics = {}
-    for sentiment, new_topics in new_topics_per_sentiment.items():
-        existing_topics = existing_elementary_subjects_dict.get(sentiment, [])
-        # Map new topics to existing topics using LLM
-        topic_mapping = map_to_existing_elementary_subjects(list(new_topics), existing_topics)
-        # Update the overall mapping
-        mapped_topics.update(topic_mapping)
-    
-    # Update feedbacks with the mapped topics
+        new_topics_by_sentiment.setdefault(sentiment, set())
+        topic = feedback['elementary_subjects'][0] if feedback.get('elementary_subjects') else 'Unknown Topic'
+        new_topics_by_sentiment[sentiment].add(topic)
+
+    external_topic_mapping = {}
+    for sentiment, new_topics in new_topics_by_sentiment.items():
+        existing_topics = existing_topics_by_sentiment.get(sentiment, [])
+        topic_mapping = map_topics_to_existing(list(new_topics), existing_topics)
+        external_topic_mapping.update(topic_mapping)
+
+    # Update feedbacks with mapped topics
     final_feedbacks = []
-    for feedback in updated_feedbacks:
-        old_topic = feedback['elementary_subjects'][0] if feedback['elementary_subjects'] else 'Unknown Topic'
-        mapped_topic = mapped_topics.get(old_topic, old_topic)  # Fallback to old_topic if not found
+    for feedback in deduplicated_feedbacks:
+        original_topic = feedback['elementary_subjects'][0] if feedback.get('elementary_subjects') else 'Unknown Topic'
+        mapped_topic = external_topic_mapping.get(original_topic, original_topic)
         feedback['elementary_subjects'] = [mapped_topic] if mapped_topic != 'Unknown Topic' else []
         final_feedbacks.append(feedback)
-    
+
+    # print(f"final_feedbacks: {final_feedbacks}")
+
     return final_feedbacks
 
-def map_to_existing_elementary_subjects(new_topics: List[str], existing_topics: List[str]) -> Dict[str, str]:
-    """Map new topics to existing topics using LLM"""
+def identify_and_merge_duplicates(topics: List[str]) -> Dict[str, List[str]]:
+    """
+    Identifies and merges duplicate or similar topics using an LLM.
+
+    Parameters:
+        topics: List of topics to process.
+
+    Returns:
+        Dictionary mapping final topics to lists of merged topics.
+    """
+    prompt = PROMPT_REMOVE_DUPLICATES.format(topics=json.dumps(topics, ensure_ascii=False))
+    messages = [{"role": "user", "content": prompt}]
+
+    try:
+        assistant_response = request_llm(
+            messages,
+            model="gpt-4o-mini",
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        merged_topics = json.loads(assistant_response)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse JSON from LLM response in identify_and_merge_duplicates.")
+        merged_topics = {}
+    except Exception as e:
+        logger.error(f"LLM request failed in identify_and_merge_duplicates: {e}")
+        merged_topics = {}
+
+    return merged_topics
+
+def map_topics_to_existing(new_topics: List[str], existing_topics: List[str]) -> Dict[str, str]:
+    """
+    Maps new topics to existing topics using an LLM.
+
+    Parameters:
+        new_topics: List of new topics to be mapped.
+        existing_topics: List of existing topics to map against.
+
+    Returns:
+        Dictionary mapping new topics to existing topics.
+    """
     if not existing_topics:
-        # No existing topics, return identity mapping
-        return {topic: topic for topic in new_topics}
-    try:
-        # Prepare the prompt
-        prompt = PROMPT_MAP_TO_EXISTING_TOPICS.format(new_topics=new_topics, existing_topics=existing_topics)
-        messages = [
-            {"role": "user", "content": prompt},
-        ]
-        # Call LLM
-        assistant_message = request_llm(messages, model="gpt-4o-mini", max_tokens=4000, response_format={"type": "json_object"})
-        
-        # Parse response
-        try:
-            mapped_topics = json.loads(assistant_message)
-        except json.JSONDecodeError:
-            # Try to extract JSON from the response
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', assistant_message)
-            if json_match:
-                json_content = json_match.group()
-                mapped_topics = json.loads(json_content)
-            else:
-                print("[map_to_existing_elementary_subjects()] No JSON object found in the assistant's response.")
-                print("Assistant's response:", assistant_message)
-                mapped_topics = {topic: topic for topic in new_topics}
-        return mapped_topics
-
-    except Exception as e:
-        print(f"[map_to_existing_elementary_subjects()] {e}")
         return {topic: topic for topic in new_topics}
 
+    prompt = PROMPT_MAP_TO_EXISTING_TOPICS.format(
+        new_topics=json.dumps(new_topics, ensure_ascii=False),
+        existing_topics=json.dumps(existing_topics, ensure_ascii=False)
+    )
+    messages = [{"role": "user", "content": prompt}]
 
-
-
-
-def mapping_duplicates(topics: List[str]) -> Dict[str, List[str]]:
-    """Map duplicates in a list of topics using LLM"""
     try:
-        # Format the prompt by replacing the {topics} placeholder
-        messages = [
-            {"role": "user", "content": PROMPT_DUPLICATES_INSIDE_FEEDBACKS.format(topics=str(topics))},
-        ]
-
-        # Request the LLM with the provided messages
-        assistant_message = request_llm(messages, model="gpt-4o-mini", max_tokens= 4000, response_format={"type": "json_object"})
-
-        # Now parse the assistant's message to extract the JSON
-        # Since the assistant is instructed to output only the JSON object, we can parse directly
-        try:
-            merged_topics = json.loads(assistant_message)
-        except json.JSONDecodeError:
-            # If parsing fails, attempt to extract JSON using regex
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', assistant_message)
-            if json_match:
-                json_content = json_match.group()
-                merged_topics = json.loads(json_content)
-            else:
-                print("[mapping_duplicates()] No JSON object found in the assistant's response.")
-                print("Assistant's response:", assistant_message)
-                merged_topics = {}
-        
-        return merged_topics
-    
+        assistant_response = request_llm(
+            messages,
+            model="gpt-4o-mini",
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        topic_mapping = json.loads(assistant_response)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse JSON from LLM response in map_topics_to_existing.")
+        topic_mapping = {topic: topic for topic in new_topics}
     except Exception as e:
-        print(f"[mapping_duplicates()] {e}")
-        return {}
+        logger.error(f"LLM request failed in map_topics_to_existing: {e}")
+        topic_mapping = {topic: topic for topic in new_topics}
+
+    return topic_mapping
+
+def apply_topic_processing(
+    extractions: List[Dict],
+    existing_topics_by_sentiment: Dict[str, List[str]]
+) -> List[Dict]:
+    """
+    Applies the topic processing to a list of extractions.
+
+    Parameters:
+        extractions: List of extraction dictionaries.
+        existing_topics_by_sentiment: Dictionary mapping sentiments to existing topics.
+
+    Returns:
+        List of updated extraction dictionaries.
+    """
+    try:
+        return process_feedback_topics(extractions, existing_topics_by_sentiment)
+    except Exception as e:
+        logger.error(f"Error in process_feedback_topics: {e}")
+        return extractions
 
 
 def replace_elementary_subjects_in_all_feedbacks(

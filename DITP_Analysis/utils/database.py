@@ -1,10 +1,13 @@
 from pymongo.collection import Collection
-from typing import List, Dict
+from typing import List, Dict, Any
 from bson import ObjectId
 
 from enum import Enum
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 import certifi
+from utils.request_utils import get_embedding
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 MONGO_PASSWORD = "TZ4ejFMVMzInADLP"
 
@@ -14,6 +17,7 @@ mongo_client = MongoClient(
     "myFirstDatabase?retryWrites=true&w=majority",
     tlsCAFile=certifi.where()
 )
+
 
 feedback_collection = mongo_client["feedbacks_db"]["feedbacks_Prod"]
 
@@ -58,6 +62,23 @@ def get_feedbacks_with_extractions(
 ):
     """Get all the feedbacks with extractions from the MongoDB collection"""
     return list(feedback_collection.find({"brand": brand, extractions_column: {"$exists": True}}).sort([("timestamp", -1)]))
+
+
+def update_feedbacks(
+    feedback_updates: List[Dict[str, Any]]
+):
+    """Update multiple feedbacks in the MongoDB collection using bulk operations"""
+    print(f"Updating {len(feedback_updates)} feedbacks")
+    
+    # Prepare bulk operations
+    bulk_operations = [
+        UpdateOne({"_id": feedback["id"]}, {"$set": feedback["updates"]})
+        for feedback in feedback_updates
+    ]
+    
+    # Execute bulk write
+    result = feedback_collection.bulk_write(bulk_operations)
+    print(f"Matched: {result.matched_count}, Modified: {result.modified_count}")
 
 """  - - - - - - - - - - - - - - - - -
         CLASSIFICATION SCHEME
@@ -220,6 +241,74 @@ def get_one_elementary_subject(
     return elementary_subjects_collection.find_one(
         {"brand": brand, "elementary_subject": elementary_subject}
     )
+
+
+
+def insert_new_elementary_subjects(subjects_to_insert, brand):
+    """
+    Inserts new elementary_subjects into MongoDB if they don't already exist.
+
+    :param subjects_to_insert: List of dictionaries containing elementary_subjects and types.
+    :param brand: Brand name to associate with the elementary_subjects.
+    """
+    # Extract the list of elementary_subject names to check for existing entries
+    subject_names = [subject['elementary_subject'] for subject in subjects_to_insert]
+
+    # Query the database to find existing elementary_subjects
+    existing_subjects_cursor = elementary_subjects_collection.find(
+        {'elementary_subject': {'$in': subject_names}},
+        {'elementary_subject': 1}
+    )
+    existing_subjects = set(doc['elementary_subject'] for doc in existing_subjects_cursor)
+
+    # Filter out subjects that already exist in the database
+    new_subjects = [subject for subject in subjects_to_insert if subject['elementary_subject'] not in existing_subjects]
+
+    # If there are no new subjects, exit early
+    if not new_subjects:
+        return
+
+    # Prepare the list of new elementary_subject names
+    new_subject_names = [subject['elementary_subject'] for subject in new_subjects]
+
+    # Generate embeddings for new subjects in parallel
+    def get_embedding_for_subject(subject_name):
+        embeddings = get_embedding(subject_name)  # Replace with your actual embedding function
+        return subject_name, embeddings
+
+    embeddings_dict = {}
+    with ThreadPoolExecutor() as executor:
+        future_to_subject = {executor.submit(get_embedding_for_subject, subject_name): subject_name for subject_name in new_subject_names}
+        for future in as_completed(future_to_subject):
+            subject_name = future_to_subject[future]
+            try:
+                subject_name, embeddings = future.result()
+                embeddings_dict[subject_name] = embeddings
+            except Exception as e:
+                print(f"Error getting embedding for {subject_name}: {e}")
+                # Handle the exception as needed
+
+    # Prepare the documents with additional fields
+    documents_to_insert = []
+    for subject in new_subjects:
+        elementary_subject_name = subject['elementary_subject']
+        embeddings = embeddings_dict.get(elementary_subject_name)
+        if embeddings is not None:
+            document = {
+                "brand": brand,
+                "id": "_elementary_subjects_",
+                "type": subject['type'],  # Use the dynamic type from sentiment
+                "elementary_subject": elementary_subject_name,
+                "embeddings": embeddings,
+                "mappings": [],
+            }
+            documents_to_insert.append(document)
+        else:
+            print(f"No embeddings found for {elementary_subject_name}, skipping.")
+
+    # Perform bulk insertion if there are new documents
+    if documents_to_insert:
+        elementary_subjects_collection.insert_many(documents_to_insert)
 
 
 def push_new_elementary_subject_to_mongo(
