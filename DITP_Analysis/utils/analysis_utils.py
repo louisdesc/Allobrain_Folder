@@ -339,8 +339,13 @@ def format_ligne(ligne):
     
     # Retour du résultat formaté
     return "\n".join(lignes)
-
-def find_closest_elementary_subjects(extraction_text: str, subject_names: List[str], subject_embeddings: List[List[float]], top_n: int = 5) -> List[str]:
+import numpy as np
+def find_closest_elementary_subjects(
+    extraction_text: str, 
+    subject_names: List[str], 
+    subject_embeddings: List[List[float]], 
+    top_n: int = 5
+) -> List[str]:
     """
     Retrieve the top_n closest elementary subjects to a given extraction text based on cosine similarity of their embeddings.
 
@@ -357,15 +362,57 @@ def find_closest_elementary_subjects(extraction_text: str, subject_names: List[s
         return []
 
     try:
+        # Get the embedding for the extraction text
         extraction_embedding = get_embedding([extraction_text], model="text-embedding-3-large")[0]
-        cosine_distances = distance.cdist([extraction_embedding], subject_embeddings, "cosine")[0]
-        closest_subjects = [subject_names[i] for i in cosine_distances.argsort()[:top_n]]
+        
+        # Reshaping subject_embeddings to 2D:
+        subject_embeddings = np.array(subject_embeddings).reshape(3, -1)
+
+        # Reshaping extraction_embedding to 2D:
+        extraction_embedding = np.array(extraction_embedding).reshape(1, -1)
+
+        print(f"extraction_embedding = {extraction_embedding.shape}")
+        print(f"subject_embeddings = {subject_embeddings.shape}")
+        # Calculate pairwise cosine distances
+        distances = distance.cdist(subject_embeddings, extraction_embedding, metric='cosine').flatten()
+        
+        # Get the indices of the top_n closest subjects
+        closest_subjects = [subject_names[i] for i in distances.argsort()[:top_n]]
 
         return closest_subjects
     except Exception as e:
-        print(f"Error in find_closest_elementary_subjects: {e}")
+        print(f"Error in find_closest_elementary_subjects: {e} - {subject_names}")
         return []
+def compare_distances_cdist(list_of_words, single_word, metric='cosine', model="text-embedding-3-large"):
+    # Get embeddings for the list of words and the single word
+    word_embeddings = np.array(get_embedding(list_of_words, model=model))
+    single_word_embedding = np.array(get_embedding([single_word], model=model)).reshape(1, -1)
+    
+    print(word_embeddings)
+    print('o')
+    print(single_word_embedding)
+    print(word_embeddings.shape)
+    print(single_word_embedding.shape)
+    # Calculate pairwise distance using the specified metric
+    distances = cdist(word_embeddings, single_word_embedding, metric=metric)
+    
+    # Flatten the distances array (since it is 2D)
+    distances = distances.flatten()
 
+    # Sort the distances and get the indices of the two closest words
+    closest_subjects = [list_of_words[i] for i in distances.argsort()[:2]]
+    
+    # Return the two closest subjects
+    return closest_subjects
+
+# Example usage
+list_of_words = ["cat", "dog", "pear"]
+single_word = "animal"
+
+# Compare using cosine distance
+closest_subjects = compare_distances_cdist(list_of_words, single_word, metric='cosine')
+
+print("Two closest subjects:", closest_subjects)
 
 def update_mapping_for_one_elementary_subject(
     brand: str,
@@ -649,7 +696,7 @@ def get_elementary_subjects_for_part_of_feedback(
     brand_name: str,
     brand_context: str,
     model: str,
-    should_update_mongo: bool = True
+    should_update_mongo: bool = False
 ) -> Dict[str, Any]:
     """
     Classify a given text extraction and identify associated topics.
@@ -676,8 +723,8 @@ def get_elementary_subjects_for_part_of_feedback(
     extraction_sentiment=extractions['sentiment']
     extraction_subjects=extractions['extraction']
     extraction_text=extractions['text']
-
     # Retrieve all elementary subjects corresponding to the brand and category
+
     elementary_subjects = get_elementary_subjects(brand_name, extraction_sentiment)
     subject_names = [subject["elementary_subject"] for subject in elementary_subjects]
     subject_embeddings = [subject["embeddings"] for subject in elementary_subjects]
@@ -716,20 +763,6 @@ def get_elementary_subjects_for_part_of_feedback(
         if new_topic:
             # Get the embedding of the new topic
             embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
-
-            # If it's a new subject and `should_update_mongo` is True, push it to Mongo
-            if should_update_mongo:
-                # Find corresponding topics from the classification schemes
-                # mappings = update_mapping_for_one_elementary_subject(brand_name, new_topic) # TODO: Mapping
-                mappings = []
-                # Push the new elementary subject to Mongo
-                push_new_elementary_subject_to_mongo(
-                    brand_name,
-                    extraction_sentiment,
-                    new_topic,
-                    embedding,
-                    mappings,
-                )
 
             topics = [new_topic]
             is_new_topic = True
