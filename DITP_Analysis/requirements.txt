@@ -1,6 +1,0 @@
-openai==1.50.2
-pymongo==4.3.3
-pandas==2.0.2
-numpy==1.26.4
-boto3>=1.28.16,<1.28.65
-scipy==1.13.1
