@@ -231,7 +231,7 @@ def get_elementary_subjects(
     brand: str, type: ElementarySubjectType
 ):
     """Get all the elementary subjects matching the brand and topic_type"""
-    return list(elementary_subjects_collection.find({"brand": brand, "type": type}))
+    return list(elementary_subjects_collection.find({"brand": brand, "type": type.lower()}))
 
 
 def get_one_elementary_subject(
@@ -273,7 +273,7 @@ def insert_new_elementary_subjects(subjects_to_insert, brand):
 
     # Generate embeddings for new subjects in parallel
     def get_embedding_for_subject(subject_name):
-        embeddings = get_embedding(subject_name)  # Replace with your actual embedding function
+        embeddings = get_embedding([subject_name], model="text-embedding-3-large")[0]
         return subject_name, embeddings
 
     embeddings_dict = {}
@@ -297,7 +297,7 @@ def insert_new_elementary_subjects(subjects_to_insert, brand):
             document = {
                 "brand": brand,
                 "id": "_elementary_subjects_",
-                "type": subject['type'],  # Use the dynamic type from sentiment
+                "type": subject['type'].lower(),
                 "elementary_subject": elementary_subject_name,
                 "embeddings": embeddings,
                 "mappings": [],

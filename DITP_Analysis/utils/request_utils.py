@@ -33,6 +33,6 @@ def request_llm(messages, max_tokens=500, temperature=0, model="claude-3-haiku",
 
     return res.choices[0].message.content
 
-def get_embedding(texts, model="text-embedding-ada-002"):
+def get_embedding(texts, model="text-embedding-3-large"):
     res = openaiClient.embeddings.create(input=texts, model=model)
     return [x.embedding for x in res.data]

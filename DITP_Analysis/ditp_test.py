@@ -1,3 +1,4 @@
+# %%
 import json
 import os
 import logging
@@ -10,13 +11,14 @@ import boto3
 from utils.analysis_utils import (
     format_ligne,
     get_elementary_subjects_for_part_of_feedback,
-    rename_duplicates
+    apply_topic_processing
 )
-from utils.database import update_feedbacks_in_mongo
+from utils.database import update_feedbacks, insert_new_elementary_subjects
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Constants
 LANGUAGE = 'french'
@@ -25,7 +27,7 @@ MONGO_SECRET_ID = 'Prod/alloreview'
 MONGO_REGION = 'eu-west-3'
 MONGO_DATABASE = 'feedbacks_db'
 MONGO_COLLECTION = 'feedbacks_Prod'
-SAMPLE_SIZE = 50  # Adjust as needed
+SAMPLE_SIZE = 100  # Adjust as needed
 MODEL_NAME = 'gpt-4o-mini'  # Adjust as needed
 
 def get_mongo_client():
@@ -91,6 +93,8 @@ df_feedbacks['brand_context'] = df_feedbacks.apply(format_ligne, axis=1)
 df_to_process = df_feedbacks[['_id', 'extractions', 'brand_context']]
 logger.info(f"Number of rows pending elementary_subjects processing: {df_to_process.shape[0]}")
 
+# %%
+
 # Explode 'extractions' to have one extraction per row
 df_extractions = df_to_process.explode('extractions').reset_index(drop=True)
 
@@ -139,6 +143,7 @@ def process_extractions_in_parallel(df: pd.DataFrame, func, max_workers=10) -> p
     processed_df = pd.DataFrame(results)
     return processed_df
 
+# %%
 # Process extractions in parallel
 df_processed_extractions = process_extractions_in_parallel(df_extractions, process_extraction_row)
 
@@ -147,18 +152,118 @@ df_grouped = df_processed_extractions.groupby('_id').agg({
     'extractions': list
 }).reset_index()
 
-# Apply rename_duplicates to each row's 'extractions' list
-def apply_rename_duplicates(extractions):
-    try:
-        return rename_duplicates(extractions)
-    except Exception as e:
-        logger.error(f"Error in rename_duplicates: {e}")
-        return extractions
+# %%
+from utils.database import (get_elementary_subjects)
 
-df_grouped['extractions'] = df_grouped['extractions'].apply(apply_rename_duplicates)
+# First, retrieve existing elementary subjects per sentiment type
+existing_topics_by_sentiment = {}
+for sentiment in ['negative', 'positive', 'suggestion']:
+    existing_subjects = get_elementary_subjects(BRAND_NAME, sentiment)
+    existing_topics_by_sentiment[sentiment.upper()] = [item['elementary_subject'] for item in existing_subjects]
 
+# %%
+logger = logging.getLogger(__name__)
+def process_row(extractions_row):
+    """
+    Wrapper function to process a single row of extractions.
+    """
+    return apply_topic_processing(extractions_row, existing_topics_by_sentiment)
+
+# Number of worker threads
+MAX_WORKERS = 10  # Adjust this number based on your system and API rate limits
+
+# Apply the function in parallel using ThreadPoolExecutor
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    # Create a mapping of futures
+    future_to_index = {
+        executor.submit(process_row, row): idx for idx, row in df_grouped['extractions'].items()  # Use items() instead of iteritems()
+    }
+    # Collect results as they complete
+    for future in as_completed(future_to_index):
+        idx = future_to_index[future]
+        try:
+            result = future.result()
+            df_grouped.at[idx, 'extractions'] = result
+        except Exception as e:
+            logger.error(f"Error processing row {idx}: {e}")
+            # Handle the error as needed (e.g., assign None or keep the original value)
+            df_grouped.at[idx, 'extractions'] = df_grouped.at[idx, 'extractions']  # Or assign a default value
+
+# %%
+# all_elementary_subjects = {}
+# for _, row in df_grouped.iterrows():
+#     extractions = row['extractions']
+#     for extraction in extractions:
+#         subjects = extraction.get('elementary_subjects', [])
+#         sentiment = extraction.get('sentiment', 'UNKNOWN')  # Default to UNKNOWN if sentiment is missing
+#         for subject in subjects:
+#             # Store the elementary_subject along with its sentiment as type
+#             all_elementary_subjects[subject] = sentiment
+
+# # Prepare the list of elementary_subjects to insert
+# subjects_to_insert = [
+#     {
+#         "elementary_subject": subject,
+#         "type": sentiment,  # Use the sentiment as type
+#     }
+#     for subject, sentiment in all_elementary_subjects.items()
+# ]
+# subjects_to_insert
+# subject_names = [subject['elementary_subject'] for subject in subjects_to_insert]
+# subject_names
+
+# %%
+
+
+def bulk_insert_elementary_subjects(df, insert_function, brand):
+    """
+    Prepares and performs bulk insertion of new elementary_subjects into MongoDB
+    for each row in the DataFrame.
+
+    :param df: DataFrame containing 'extractions' column.
+    :param insert_function: Function to perform the insertion in MongoDB.
+    :param brand: Brand name to associate with the elementary_subjects.
+    """
+    # Collect all elementary_subjects from the DataFrame along with their types (sentiment)
+    all_elementary_subjects = {}
+    for _, row in df.iterrows():
+        extractions = row['extractions']
+        for extraction in extractions:
+            subjects = extraction.get('elementary_subjects', [])
+            sentiment = extraction.get('sentiment', 'UNKNOWN')  # Default to UNKNOWN if sentiment is missing
+            for subject in subjects:
+                # Store the elementary_subject along with its sentiment as type
+                all_elementary_subjects[subject] = sentiment
+
+    # Prepare the list of elementary_subjects to insert
+    subjects_to_insert = [
+        {
+            "elementary_subject": subject,
+            "type": sentiment,  # Use the sentiment as type
+        }
+        for subject, sentiment in all_elementary_subjects.items()
+    ]
+
+    # Call the insert function with the list of subjects to insert
+    insert_function(subjects_to_insert, brand)
+
+bulk_insert_elementary_subjects(
+    df_grouped,
+    insert_new_elementary_subjects,
+    brand=BRAND_NAME,
+)
+
+# %%
+from utils.analysis_utils import update_splitted_analysis
+df_grouped['splitted_analysis_v2'] = df_grouped.apply(
+    lambda row: update_splitted_analysis(row['_id'], row['extractions'], 'splitted_analysis_v2'), 
+    axis=1
+)
+
+
+# %%
 # Update feedbacks in MongoDB
-def bulk_update_from_dataframe(df, update_function):
+def bulk_update_feedbacks_from_dataframe(df, update_function):
     """
     Prepares and performs bulk update of feedback documents in MongoDB.
 
@@ -170,6 +275,8 @@ def bulk_update_from_dataframe(df, update_function):
             "id": row['_id'],
             "updates": {
                 "extractions": row['extractions'],
+                "splitted_analysis_v2": row['splitted_analysis_v2'],
+                "topics_v2": []
                 # Include other fields to update if necessary
             }
         }
@@ -178,7 +285,4 @@ def bulk_update_from_dataframe(df, update_function):
     # Call the update function with the list of feedback updates
     update_function(feedbacks_to_update)
 
-bulk_update_from_dataframe(df_grouped, update_feedbacks_in_mongo)
-
-# TODO:
-# - Implement update_splitted_analysis function to update 'splitted_analysis_v2' field.
+bulk_update_feedbacks_from_dataframe(df_grouped, update_feedbacks)

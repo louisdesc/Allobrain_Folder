@@ -340,11 +340,13 @@ def format_ligne(ligne):
     # Retour du résultat formaté
     return "\n".join(lignes)
 import numpy as np
+
 def find_closest_elementary_subjects(
     extraction_text: str, 
     subject_names: List[str], 
     subject_embeddings: List[List[float]], 
-    top_n: int = 5
+    top_n: int = 5,
+    model: str = "text-embedding-3-large"
 ) -> List[str]:
     """
     Retrieve the top_n closest elementary subjects to a given extraction text based on cosine similarity of their embeddings.
@@ -360,22 +362,16 @@ def find_closest_elementary_subjects(
     """
     if not subject_names:
         return []
-
     try:
-        # Get the embedding for the extraction text
-        extraction_embedding = get_embedding([extraction_text], model="text-embedding-3-large")[0]
-        
-        # Reshaping subject_embeddings to 2D:
-        subject_embeddings = np.array(subject_embeddings).reshape(3, -1)
+        # Use the stored embeddings directly
+        subject_embeddings = np.array(subject_embeddings)
 
-        # Reshaping extraction_embedding to 2D:
-        extraction_embedding = np.array(extraction_embedding).reshape(1, -1)
+        # Embed the extraction text
+        extraction_embedding = np.array(get_embedding([extraction_text], model=model)).reshape(1, -1)
 
-        print(f"extraction_embedding = {extraction_embedding.shape}")
-        print(f"subject_embeddings = {subject_embeddings.shape}")
-        # Calculate pairwise cosine distances
+        # Compute cosine distances
         distances = distance.cdist(subject_embeddings, extraction_embedding, metric='cosine').flatten()
-        
+
         # Get the indices of the top_n closest subjects
         closest_subjects = [subject_names[i] for i in distances.argsort()[:top_n]]
 
@@ -383,36 +379,6 @@ def find_closest_elementary_subjects(
     except Exception as e:
         print(f"Error in find_closest_elementary_subjects: {e} - {subject_names}")
         return []
-def compare_distances_cdist(list_of_words, single_word, metric='cosine', model="text-embedding-3-large"):
-    # Get embeddings for the list of words and the single word
-    word_embeddings = np.array(get_embedding(list_of_words, model=model))
-    single_word_embedding = np.array(get_embedding([single_word], model=model)).reshape(1, -1)
-    
-    print(word_embeddings)
-    print('o')
-    print(single_word_embedding)
-    print(word_embeddings.shape)
-    print(single_word_embedding.shape)
-    # Calculate pairwise distance using the specified metric
-    distances = cdist(word_embeddings, single_word_embedding, metric=metric)
-    
-    # Flatten the distances array (since it is 2D)
-    distances = distances.flatten()
-
-    # Sort the distances and get the indices of the two closest words
-    closest_subjects = [list_of_words[i] for i in distances.argsort()[:2]]
-    
-    # Return the two closest subjects
-    return closest_subjects
-
-# Example usage
-list_of_words = ["cat", "dog", "pear"]
-single_word = "animal"
-
-# Compare using cosine distance
-closest_subjects = compare_distances_cdist(list_of_words, single_word, metric='cosine')
-
-print("Two closest subjects:", closest_subjects)
 
 def update_mapping_for_one_elementary_subject(
     brand: str,
@@ -762,7 +728,7 @@ def get_elementary_subjects_for_part_of_feedback(
         new_topic = response_data.get("new_topic")  # Extract new_topic early
         if new_topic:
             # Get the embedding of the new topic
-            embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
+            # embedding = get_embedding([new_topic], model="text-embedding-3-large")[0]
 
             topics = [new_topic]
             is_new_topic = True

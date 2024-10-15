@@ -269,7 +269,7 @@ def process_extractions_in_parallel(
             for _, x in extraction_requests.iterrows()
         ]
 
-        chunk_size = 20
+        chunk_size = 50
         for i in tqdm(range(0, len(futures), chunk_size), desc="Processing chunks"):
             completed_futures, _ = concurrent.futures.wait(futures[i:i + chunk_size], return_when=concurrent.futures.ALL_COMPLETED)
 
