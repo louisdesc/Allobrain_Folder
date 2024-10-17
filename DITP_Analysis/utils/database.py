@@ -276,6 +276,8 @@ def insert_new_elementary_subjects(subjects_to_insert, brand):
         embeddings = get_embedding([subject_name], model="text-embedding-3-large")[0]
         return subject_name, embeddings
 
+
+    # TODO: Inutile de faire un thread pour ça, il suffit d'envoyer la liste python avec tous les elementary_subjects à 'embedder'.
     embeddings_dict = {}
     with ThreadPoolExecutor() as executor:
         future_to_subject = {executor.submit(get_embedding_for_subject, subject_name): subject_name for subject_name in new_subject_names}

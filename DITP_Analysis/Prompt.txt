@@ -40,157 +40,37 @@ Site web : Problèmes de chargement
 Réclamations : Non traitées
 Non-respect de la confidentialité
 
-Feedbacks are from French public services.
-Intitulé Structure 1: France Titres-ANTS
-Pays de la demande: France
-Feedback complet: Demande de passeport et de CNI
-Les demandes n'avancent pas vite. Ma CNI et mon passeport sont en cours d'instruction depuis déja le 01/03 même pas encore en cours de fabrication, donc soit déja depuis plus de 15j et je dois voyager le 10/04
-C'est inadmissible
-
-Les demandes n'avancent pas vite. Ma CNI et mon passeport sont en cours d'instruction depuis déja le 01/03 même pas encore en cours de fabrication, donc soit déja depuis plus de 15j et je dois voyager le 10/04
-Suivi de Dossier : Délai de Traitement : Carte nationale d'identité (CNI)
-
-Les demandes n'avancent pas vite. Ma CNI et mon passeport sont en cours d'instruction depuis déja le 01/03 même pas encore en cours de fabrication, donc soit déja depuis plus de 15j et je dois voyager le 10/04
-Suivi de Dossier : Délai de Traitement : Passeport
-
-===================
-
-Feedbacks are from French public services.
-Intitulé Structure 1: masecurite.fr
-Pays de la demande: France
-Feedback complet: Tchat police nationale
-Le policier a été très gentil et m’a donné les renseignements attendus pour régler mon problème. Super service
-
-Le policier a été très gentil et m’a donné les renseignements attendus pour régler mon problème. Super service
-Service : Personnel : Amabilité du personnel
-
-Le policier a été très gentil et m’a donné les renseignements attendus pour régler mon problème. Super service
-Service : Personnel : Information fourni
-
-===================
-
-Feedbacks are from French public services.
-Intitulé Structure 1: Service-public.fr
-Pays de la demande: France
-Feedback complet: problème demandes d'acte de naissance + contact en cas de problème
-Sur le site service-public.fr
-Le formulaire de demande d'acte de naissance pour moi même, né à l'étranger, ne marche pas, je suis bloqué à la première étape sans aucune indication de pourquoi.
-Le formulaire de demande d'acte de naissance pour mes enfants, nés en france, ne marche pas, j'ai une page blanche avec écrit "not found"
-Le formulaire pour envoyer une question et savoir comment faire pour avoir les actes malgré les formulaires cassés ne marche pas, quand je clique sur le bouton d'envoi ça recharge la page
-
-Le formulaire de demande d'acte de naissance pour moi même, né à l'étranger, ne marche pas, je suis bloqué à la première étape sans aucune indication de pourquoi.\n
-Le formulaire de demande d'acte de naissance pour mes enfants, nés en france, ne marche pas, j'ai une page blanche avec écrit "not found"
-Site web : Formulaires non fonctionnels : Demande d'Acte de Naissance
-
-Le formulaire pour envoyer une question et savoir comment faire pour avoir les actes malgré les formulaires cassés ne marche pas, quand je clique sur le bouton d'envoi ça recharge la page
-Site web : Formulaires non fonctionnels : Difficulté de contact
-
-===================
-
-Feedbacks are from French public services.
-Intitulé Structure 1: Préfecture de la Moselle
-Tags Métiers: Fonctionnement du site
-Pays de la demande: France
-Feedback complet: Transfert d'arme impossible
-J'ai créé mon compte SIA, après plusieurs démarches mon autorisation est remontée. Jusque-là, tout va bien..
-Je décide ensuite d'acheter une arme, la transaction se fait et au moment de transférer cette arme vers mon SIA, les choses se compliquent et mon armurier n'arrive pas à accéder à mon compte, pour lui je n'existe pas au SIA.
-A chaque tentative le système se met en erreur et affiche une erreur d'accès au serveur.
-Presqu'une semaine que cela dure.
-Que faire ?
 
 
-la transaction se fait et au moment de transférer cette arme vers mon SIA, les choses se compliquent et mon armurier n'arrive pas à accéder à mon compte, pour lui je n'existe pas au SIA.
-Catégorie : SIA : Difficulté de transfert
+Les services > Qualité du service
+Les services > Rapidité de réponse
+Les services > Accessibilité des services
+Les services > Fiabilité des services
+Les services > Clarté des informations
+Les services > Disponibilité des services
 
-À chaque tentative le système se met en erreur et affiche une erreur d'accès au serveur.
-Site web : Erreur d'accès Serveur
+Les procédures > Complexité des démarches
+Les procédures > Exigences Documentaires
+Les procédures > Cohérence des procédures
+Les procédures > Rapidité des procédures
 
-Presqu'une semaine que cela dure.
-Délai de traitement
+Le personnel > Amabilité du personnel
+Le personnel > Disponibilité et compétence
+Le personnel > Empathie et écoute
 
-===================
+Site internet et applications > Facilité d'utilisation
+Site internet et applications > Disponibilité et fiabilité
+Site internet et applications > Accessibilité des services en ligne
+Site internet et applications > Ergonomie et fonctionnalités
+Site internet et applications > Fonctionnement et performance
 
-Feedbacks are from French public services.
-Intitulé Structure 1: Assurance retraite Ile-de-France
-Pays de la demande: France
-Feedback complet: demande Aspa
-J’ai fait ma demande d’Aspa en juillet 2021. Mon dossier est complet et il est toujours en attente depuis ! J’ai fait un courrier service clientèle, j’ai saisi le médiateur, je suis passée par la CARSAT DE L’ORNE ou j’ai trouvé une super écoute ! ils ont transmis la demande auprès de la carsat Noisy le Grand, contacté la direction Carsat Normandie pour qu’ils contactent la direction IDF.
-J’ai reçu un mail sur mon espace client me disant que mon dossier serait traité sous 7 jours ouvrés, et bien non !
-on se moque de nous, on nous balade. On me fixe un rendez vous téléphonique, et on ne m’appelle pas. On envoie des mails à mon gestionnaire, pour signaler l’urgence aucune réponse !
-Je devrai vivre tranquille avec ma petite retraite et la aide de l’ASPA , et bien non, je galère pour régler mes factures et mon loyer ! 
-Nous sommes vraiment absolument pas considérée par la CARSAT de Paris !
-Perso je suis désespérée de cette situation !
+Les rendez-vous > Disponibilité des créneaux
+Les rendez-vous > Facilité de prise de rendez-vous
+Les rendez-vous > Notifications et rappels
+Les rendez-vous > Non honorés
 
+Les documents > Exactitude des documents délivrés
+Les documents > Délai de délivrance des documents
 
-Catégorie : Suivi de dossier : Délai de traitement
-Phrases :
-"Mon dossier est complet et il est toujours en attente depuis !"
-"J’ai reçu un mail sur mon espace client me disant que mon dossier serait traité sous 7 jours ouvrés, et bien non !"
-
-Catégorie : Communication : Manque de suivi
-Phrases :
-"J’ai fait un courrier service clientèle, j’ai saisi le médiateur, je suis passée par la CARSAT DE L’ORNE ou j’ai trouvé une super écoute ! ils ont transmis la demande auprès de la carsat Noisy le Grand, contacté la direction Carsat Normandie pour qu’ils contactent la direction IDF."
-"On envoie des mails à mon gestionnaire, pour signaler l’urgence aucune réponse !"
-"On me fixe un rendez-vous téléphonique, et on ne m’appelle pas."
-
-Catégorie : Communication : Multiplicité d'interlocuteurs
-Phrases : "J’ai fait un courrier service clientèle, j’ai saisi le médiateur, je suis passée par la CARSAT DE L’ORNE ou j’ai trouvé une super écoute ! ils ont transmis la demande auprès de la carsat Noisy le Grand, contacté la direction Carsat Normandie pour qu’ils contactent la direction IDF."
-
-Catégorie : Service : Manque de considération
-Phrases :
-"on se moque de nous, on nous balade."
-"Nous sommes vraiment absolument pas considérée par la CARSAT de Paris !"
-
-
-
-
-
-================
-Exemple mais sans commentaire complet :
-
-{
-    "role": "user",
-    "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: France Titres-ANTS\nPays de la demande: France",
-        extraction_sentiment="Negative",
-        extraction_text="Délai inadmissible pour le traitement des documents",
-        closest_subjects=[
-            "Communication : Manque de Suivi",
-            "Communication : Délai de Réponse",
-            "Accessibilité : Problèmes de Connexion",
-            "Assistance : Insuffisante",
-            "Suivi de dossier : Délai de Traitement",
-        ],
-        language="french",
-    ),
-},
-{
-    "role": "assistant",
-    "content": '''{
-    "justification": "Le feedback exprime une insatisfaction concernant un délai de traitement jugé inadmissible pour les documents. La catégorie 'Suivi de dossier : Délai de Traitement' est pertinente et couvre bien la situation.",
-    "topics": ["Suivi de dossier : Délai de Traitement"]
-}''',
-},
-{
-    "role": "user",
-    "content": PROMPT_FEEDBACK_TEMPLATE.format(
-        brand_context="Feedbacks are from French public services.\nIntitulé Structure 1: Ambassade de France aux Philippines\nPays de la demande: Philippines",
-        extraction_sentiment="Negative",
-        extraction_text="Pas de réponse de réception ou corrections pour le dossier CFE",
-        closest_subjects=[
-            "Assistance : Manque de Support",
-            "Communication : Absence de Réponse",
-            "Suivi de Dossier : Incomplet",
-            "Suivi de Dossier : Retards",
-            "Communication : Manque de Transparence",
-        ],
-        language="french",
-    ),
-},
-{
-    "role": "assistant",
-    "content": '''{
-    "justification": "Le feedback mentionne une absence de réponse pour un dossier envoyé, indiquant un manque de suivi. La catégorie 'Communication : Absence de Réponse' est pertinente, mais elle peut être précisée pour mieux refléter le contexte du dossier.",
-    "new_topic": "Suivi de Dossier : Absence de Réponse"
-}''',
-},
+Les versements et allocations > Délai de paiement
+Les versements et allocations > Exactitude des montants

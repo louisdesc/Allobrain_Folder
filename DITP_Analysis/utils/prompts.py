@@ -154,10 +154,12 @@ User feedback to process:
 """
 
 PROMPT_CLASSIF = """
-**Task: Task: Classify User Feedback into a Structured JSON Format**
-Objective: You will receive a piece of user feedback in {language}. Your task is to convert this feedback into a structured JSON format by categorizing it accurately and precisely.
+**Task**: Classify User Feedback into a Structured JSON Format**
+
+**Objective**: You will receive a piece of user feedback in {language}. Your task is to convert this feedback into a structured JSON format by categorizing it accurately and precisely.
 
 Instructions:
+
 1. **Identify categories**: 
    - Specificity: Be specific; do not infer details not explicitly mentioned. For example, if the feedback mentions a payment issue, do not assume it is related to the mobile app unless clearly stated.
    - Hierarchical Structure: The categories should follow a clear, hierarchical structure, with each level representing a more specific aspect of the issue. Example:
@@ -166,43 +168,36 @@ Instructions:
       - Level 3: Specific details (e.g., "Friendliness", "Incorrect amount")
    - Use the broadest applicable category unless the feedback clearly specifies a more detailed sub-category.
 
-2. **Avoid forbidden terms in categories:**
+2. **Avoid forbidden terms in categories**:
    - Do not use generic or broad terms in the category names, such as:
      - "Generic ..." / "Global ..." / "Général" / "Généraux"
      - "Mobile application : Problem" (without specifying what problem)
      - "Global satisfaction" (be more precise about which service or aspect)
 
-3. **Reusing and creating new categories:**
+3. **Reusing and creating new categories**:
+   - **Reuse Existing Categories**: Whenever possible, assign feedback to an existing category. Slight variations in wording (e.g., “friendliness” vs. “politeness”) should not result in different categories.
+   - **Creating New Categories**: Only create a new category if none of the existing categories even partially applies. Justify why this feedback introduces a new issue and suggest a specific, structured name for the new category.
+   - **Multiple New Categories**: If feedback contains multiple new issues that cannot fit under a single category, create multiple new topics. Ensure each proposed topic reflects a distinct issue and clearly justifies why existing categories are unsuitable.
 
-   - Reuse Existing Categories: Whenever possible, assign feedback to an existing category. Slight variations in wording (e.g., “friendliness” vs. “politeness”) should not result in different categories.
-   - Creating New Categories: Only create a new category if none of the existing categories even partially applies. Justify why this feedback introduces a new issue and suggest a specific, structured name for the new category.
-   - Justification: When proposing a new category, provide a clear reason why none of the existing categories are suitable.
-
-4. **Handling multiple categories:**
-
+4. **Handling multiple categories**:
    - Apply multiple categories only if the feedback clearly addresses distinct issues. Prioritize the most specific category for each issue.
    - Example: If a user mentions delays and rude staff, categorize them separately under “Response Time: Delays” and “Staff: Rudeness”. 
 
-5. **No duplicate categories:**
-
+5. **No duplicate categories**:
    - Avoid creating new categories that are redundant with existing ones. Instead, refine or merge subcategories if necessary to avoid duplication.
 
-6. **Handling generic feedback:**
-
+6. **Handling generic feedback**:
    - If the feedback is too general or lacks enough detail to categorize, the assistant should indicate that no category can be assigned and provide a justification explaining the lack of specificity in the feedback.
 
-7. **Precision and neutrality:**
-
+7. **Precision and neutrality**:
    - Focus on precision when categorizing and maintain neutrality. Your task is to reflect the content of the feedback, not to interpret it subjectively.
 
-8. **Feedback segmentation:**
-
+8. **Feedback segmentation**:
    - Only analyze the specific part of the feedback marked as “Part of the {language} negative/positive/suggestion feedback to process” and not the entire feedback.
 
-9. **Formatting the response:**
-
+9. **Formatting the response**:
    - If the feedback matches existing categories, format the response as a JSON object with the fields "justification" and "topics", where "topics" is a list of one or multiple matching categories.
-   - If the feedback does not match any existing category, suggest a new one by providing a JSON object with the fields "justification" and "new_topic", where "new_topic" is the new category you propose.
+   - If the feedback does not match any existing category, suggest one or multiple new categories by providing a JSON object with the fields "justification" and "new_topic", where "new_topic" is a list of newly proposed categories.
    - **Do not include any personal data or irrelevant information in the response.**
 
 **Format the response** as an array of JSON objects with this structure:
@@ -214,16 +209,16 @@ Instructions:
 If a new category is needed:
 {{
   "justification": "<reason for creating the new category>",
-  "new_topic": "<newly proposed category>"
+  "new_topic": ["<newly proposed categories>"]
 }}
 """
 
 PROMPT_FEEDBACK_TEMPLATE = """
-**Global context:**
+**Global context**:
 {brand_context}
 **Part of the {language} {extraction_sentiment} feedback to process**: {extraction_text}
 
-Closest categories (in **{language}**):
+Closest subjects (in **{language}**):
 {closest_subjects}
 """
 
@@ -242,8 +237,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser met en avant une absence de réponse suite à un contact par mail. Il ne semble pas y avoir de catégorie existante proche de ce sujet. Il est donc nécessaire de créer une nouvelle catégorie 'Suivi de dossier : Délai de réponse'.",
-    "new_topic": "Suivi de dossier : Délai de réponse"
+    "justification": "La partie du feedback a analyser met en avant une absence de réponse suite à un contact par mail. Il ne semble pas y avoir de sujet existant proche de ce sujet. Il est donc nécessaire de créer un nouveau sujet 'Communication : Délai de réponse'.",
+    "new_topic": "Communication : Délai de réponse"
 }'''
 },
     {
@@ -253,11 +248,10 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="Ce n'est vraiment pas cool,",
         closest_subjects=[
-            "Suivi de Dossier : Demande de justificatifs supplémentaires : Carte nationale d'identité (CNI)",
-            "Suivi de Dossier : Délai de traitement : Carte nationale d'identité (CNI)",
-            "Suivi de Dossier : Gestion administratives",
-            "Assistance : Délai de réponse",
-            "Accessibilité : Coût"
+            "Suivi de dossier : Demande de justificatifs supplémentaires : Carte nationale d'identité (CNI)",
+            "Suivi de dossier : Délai de traitement : Carte nationale d'identité (CNI)",
+            "Suivi de dossier : Cohérences des procédures",
+            "Service : Rapidité de réponse",
         ],
         language="french"
     )
@@ -265,7 +259,7 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser est trop imprécis pour être associé à une catégorie spécifique. Bien que le sentiment soit négatif, il ne contient pas suffisamment de détails pour l'identifier un sujet précis à traiter.",
+    "justification": "La partie du feedback a analyser est trop imprécis pour être associé à une sujet spécifique. Bien que le sentiment soit négatif, il ne contient pas suffisamment de détails pour l'identifier un sujet précis à traiter.",
     "topics": []
 }'''
 },
@@ -276,10 +270,10 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="J’avais des photos récentes on m’a demandé de les refaire sans aucun motif,",
         closest_subjects=[
-            "Suivi de Dossier : Demande de document : Exigence de nouvelles photos",
-            "Suivi de Dossier : Délai de traitement : Carte nationale d'identité (CNI)",
-            "Suivi de Dossier : Gestion administratives",
-            "Assistance : Délai de réponse",
+            "Suivi de dossier : Demande de document : Exigence de nouvelles photos",
+            "Suivi de dossier : Délai de traitement : Carte nationale d'identité (CNI)",
+            "Suivi de dossier : Cohérence des procédures",
+            "Communication : Délai de réponse",
             "Accessibilité : Déplacement nécessaire"
         ],
         language="french"
@@ -288,7 +282,7 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser exprime une frustration face à la demande de nouvelles photos malgré la présentation de photos récentes. La catégorie 'Suivi de dossier : Demande de document : Exigence de nouvelles photos' est pertinente pour cette situation.",
+    "justification": "La partie du feedback a analyser exprime une frustration face à la demande de nouvelles photos malgré la présentation de photos récentes. Le sujet 'Suivi de dossier : Demande de document : Exigence de nouvelles photos' est pertinent pour cette situation.",
     "topics": ["Suivi de dossier : Demande de document : Exigence de nouvelles photos"]
 }'''
 },
@@ -299,11 +293,12 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="Je reçois tellement d'appels...",
         closest_subjects=[
-            "Assistance : Disponibilité du service : Horaires d'assistance",
-            "Assistance : Clarté des informations",
+            "Service : Disponibilité du service : Joignabilité téléphonique",
+            "Service : Disponibilité du service : Horaires d'assistance",
+            "Service : Clarté des informations",
             "Sécurité : Confidentialité des données",
-            "Assistance : Délai de réponse",
-            "Assistance : Accessibilité",
+            "Service : Délai de réponse",
+            "Service : Accessibilité",
         ],
         language="french",
     ),
@@ -311,7 +306,7 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser indique un problème lié à la fréquence élevée des appels non sollicités. Aucune des catégories existantes ne couvre spécifiquement ce problème.",
+    "justification": "La partie du feedback a analyser indique un problème lié à la fréquence élevée des appels non sollicités. Aucun des sujets existants ne couvre spécifiquement ce problème.",
     "new_topic": "Démarchage : Volume des appels"
 }''',
 },
@@ -322,11 +317,11 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="Je suis complètement désespéré par l'inefficacité du système de l'INPI.",
         closest_subjects=[
-            "Assistance : Clarté des informations",
-            "Site Internet : Performance",
-            "Site Internet : Disponibilité du service",
-            "Site Internet : Clarté de l'interface",
-            "Site Internet : Accessibilité",
+            "Site internet : Fonctionnement",
+            "Site internet : Disponibilité",
+            "Site internet : Ergonomie de l'interface",
+            "Site internet : Accessibilité",
+            "Service : Clarté des informations",
         ],
         language="french",
     ),
@@ -334,8 +329,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser exprime une frustration importante face à l'inefficacité globale du système de l'INPI, mais il est trop général pour correspondre à une catégorie existante. Aucun sujet spécifique ne peut être attribué.",
-    "topics": []
+    "justification": "La partie du feedback a analyser exprime une frustration importante face à l'inefficacité globale du système de l'INPI. Le tags métiers, nous renseigne que le feedback est en lien avec le fonctionnement du site. Il peut donc être classé dans le sujet 'Site internet : Fonctionnement.",
+    "topics": ['Site internet : Fonctionnement]
 }''',
 },
 {
@@ -345,11 +340,11 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="On m'a répondu de manière brusque sans aucune courtoisie",
         closest_subjects=[
-            "Assistance : Personnel : Amabilité du personnel",
-            "Assistance : Personnel : Comportement inapproprié",
-            "Assistance : Délai de réponse",
-            "Assistance : Qualité des informations",
-            "Assistance : Clarté des informations",
+            "Personnel : Amabilité du personnel",
+            "Personnel : Compétence",
+            "Service : Rapidité de réponse",
+            "Service : Qualité des informations",
+            "Service : Clarté des informations",
         ],
         language="french",
     ),
@@ -357,8 +352,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser décrit un manque d'amabilité de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. La catégorie 'Service : Personnel : Amabilité du personnel' est la plus appropriée pour refléter la nature de ce retour.",
-    "topics": ["Assistance : Personnel : Amabilité du personnel"]
+    "justification": "La partie du feedback a analyser décrit un manque d'amabilité de la part du personnel, ce qui va au-delà d'un simple ressenti de désagrément. Le sujet 'Personnel : Amabilité du personnel' est le plus approprié pour refléter la nature de ce retour.",
+    "topics": ["Personnel : Amabilité du personnel"]
 }''',
 },
 {
@@ -368,10 +363,10 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="J'ai besoin de savoir si ma demande de retraite complémentaire pour le 1er octobre est bien enregistrée et de connaître le montant et la date de paiement ?",
         closest_subjects=[
-            "Suivi de dossier : Délai de réponse",
-            "Assistance : Disponibilité du service",
-            "Assistance : Clarté des informations",
-            "Assistance : Qualité des informations",
+            "Suivi de dossier : Délai de traitement",
+            "Service : Disponibilité du service",
+            "Service : Clarté des informations",
+            "Service : Qualité des informations",
         ],
         language="french"
     )
@@ -379,8 +374,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser exprime une frustration liée au délai de réponse concernant l'enregistrement de la demande de retraite complémentaire et la communication des détails sur le montant et la date de paiement. Il met en évidence des attentes non satisfaites sur la clarté des informations fournies, ce qui correspond aux sujets "Suivi de dossier : Délai de réponse" et "Assistance : Clarté des informations".",
-    "topics": ["Suivi de dossier : Délai de réponse", "Assistance : Clarté des informations"]
+    "justification": "La partie du feedback a analyser exprime une frustration liée au délai de traitement du dossier concernant l'enregistrement de la demande de retraite complémentaire. Il met en évidence des attentes non satisfaites sur la clarté des informations fournies, ce qui correspond aux sujets "Suivi de dossier : Délai de traitement" et "Service : Clarté des informations".",
+    "topics": ["Suivi de dossier : Délai de traitement", "Service : Clarté des informations"]
 }'''
 },
 {
@@ -390,10 +385,11 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment="Negative",
         extraction_text="elle m'informe que mes droits sont bloqués car je n'ai pas envoyé les passeports,",
         closest_subjects=[
-            "Assistance : Clarté des informations",
-            "Suivi de Dossier : Demande de justificatifs supplémentaires",
-            "Assistance : Disponibilité",
-            "Suivi de dossier : Délai de réponse"
+            "Service : Clarté des informations",
+            "Suivi de dossier : Demande de justificatifs supplémentaires",
+            "Suivi de dossier : Cohérence des procédures",
+            "Suivi de dossier : Simplicité des démarches",
+            "Service : Disponibilité",
         ],
         language="french"
     )
@@ -401,8 +397,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser met en avant une mauvaise compréhension des exigences concernant les documents à fournir, indiquant un manque dans la clarté des informations de la CAF.",
-    "topics": ["Assistance : Clarté des informations"]
+    "justification": "La partie du feedback à analyser exprime une frustration liée au blocage des droits à cause de la non-transmission des passeports. Elle met en évidence des attentes non satisfaites concernant les demandes répétées de documents et le manque de clarté des informations fournies par la CAF, ce qui correspond aux sujets "Suivi de dossier : Demande de justificatifs supplémentaires" et "Service : Clarté des informations".",
+    "topics": ["Suivi de dossier : Demande de justificatifs supplémentaires", "Service : Clarté des informations"]
 }'''
 },
 {
@@ -412,8 +408,11 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment='negative',
         extraction_text="Ca fait maintenant 3 mois que j ai fait une demande je n'ais aucun signe de vie de la part de l ants.",
         closest_subjects=[
-            "Suivi de dossier : Délai de réponse",
-            "Assistance : Délai de réponse"
+            "Suivi de dossier : Délai de traitement",
+            "Service : Délai de réponse",
+            "Serivce : Accessibilité des services",
+            "Personnel : Empathie",
+            "Procédures : Cohérence des procédures"
         ],
         language='french'
     )
@@ -421,8 +420,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser décrit une attente prolongée concernant une demande en cours. 'Suivi de Dossier : Délai de réponse' est pertinent car l'attente dépasse trois mois. De plus, le feedback mentionne explicitement l'absence de réponse de l'ANTS, ce qui correspond à 'Suivi de Dossier : Délai de réponse'.",
-    "topics": ["Suivi de Dossier : Délai de réponse"]
+    "justification": "La partie du feedback a analyser décrit une attente prolongée concernant une demande en cours. 'Suivi de dossier : Délai de traitement' est pertinent car l'attente dépasse trois mois. De plus, le feedback mentionne explicitement l'absence de réponse de l'ANTS, ce qui correspond au sujet 'Suivi de dossier : Délai de traitement'.",
+    "topics": ["Suivi de dossier : Délai de traitement"]
 }'''
 },
 {
@@ -432,9 +431,9 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment='negative',
         extraction_text=' ils m\'ont dit "on fait remonter le dossier" mais toujours rien ne se passe.',
         closest_subjects=[
-            "Assistance : Suivi des demandes",
-            "Suivi de dossier : Incomplet",
-            "Assistance : Clarté des informations"
+            "Service : Fiabilité des services",
+            "Suivi de dossier : Cohérence des procédures",
+            "Suivi de dossier : Délai de traitement"
         ],
         language='french'
     )
@@ -442,8 +441,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser souligne un manque suivi des demandes après avoir été informé que le dossier serait remonté, sans action concrète par la suite. La catégorie 'Assistance : Suivi des demandes' correspond à cette situation.",
-    "topics": ["Assistance : Suivi des demandes"]
+    "justification": "La partie du feedback a analyser souligne un manque de fiabilité des services, informé que le dossier serait remonté, sans action concrète par la suite. Le sujet 'Service : Fiabilité des services' correspond à cette situation.",
+    "topics": ["Service : Fiabilité des services"]
 }'''
 },
 {
@@ -453,8 +452,8 @@ CLASSIF_EXAMPLES = [
         extraction_sentiment='negative',
         extraction_text=" J'ai beau envoyé des message sur mon compte ants,",
         closest_subjects=[
-            "Assistance : Qualité des informations",
-            "Assistance : Délai de réponse",
+            "Service : Qualité des informations",
+            "Service : Délai de réponse",
             "Application mobile : Notifications : Nombreuses",
             "Application mobile : Clarté de l'interface"
         ],
@@ -464,8 +463,8 @@ CLASSIF_EXAMPLES = [
 {
     "role": "assistant",
     "content": '''{
-    "justification": "La partie du feedback a analyser mentionne l'envoi de messages sur le compte sans mentionner de réponse ni de résultat concret. Bien que le sentiment soit négatif, il ne contient pas suffisamment de détails pour l'identifier un sujet précis à traiter.",
-    "topics": []
+    "justification": "La partie du feedback a analyser mentionne l'envoi de messages, on comprends avec le commentaire complet et la suite de la phrase, qu'il s'agit du début d'une plainte concernant un délai de réponse. Il peut être assimiler au sujet 'Service : Fiabilité des services'.",
+    "topics": ["Service : Délai de réponse"]
 }'''
 }
 ]
@@ -484,7 +483,7 @@ You are given a list of topics. Your task is to identify and remove duplicates o
 - **Output Format**: Return the result as a JSON object, with the final topics as keys and the merged topics as their corresponding values.
 
 ### Example Input:
-["Amende : Majorée sans Avis Initial","Amende : Non-réception de l'avis initial et amende majorée","Amende : Problème de Notification et Communication entre Autorités","Amende : Non-réception de l'avis initial et amende majorée","Suivi de Dossier : Renvoi entre Services","Amende : Problème de Notification et Communication entre Services","Amende : Contestation d'Amende Majorée sans Avis Initial","Service : Communication : Interlocuteurs Impersonnels","Amende : Contestation d'Amende Majorée sans Avis Initial","Amende : Problème de Communication et de Traitement des Dossiers"]
+["Amende : Majorée sans Avis Initial","Amende : Non-réception de l'avis initial et amende majorée","Amende : Problème de Notification et Communication entre Autorités","Amende : Non-réception de l'avis initial et amende majorée","Suivi de dossier : Renvoi entre Services","Amende : Problème de Notification et Communication entre Services","Amende : Contestation d'Amende Majorée sans Avis Initial","Service : Communication : Interlocuteurs Impersonnels","Amende : Contestation d'Amende Majorée sans Avis Initial","Amende : Problème de Communication et de Traitement des dossiers"]
 
 Expected Output:
 {{
@@ -497,14 +496,14 @@ Expected Output:
       "Amende : Problème de Notification et Communication entre Autorités",
       "Amende : Problème de Notification et Communication entre Services"
   ],
-  "Suivi de Dossier : Renvoi entre Services": [
-      "Suivi de Dossier : Renvoi entre Services"
+  "Suivi de dossier : Renvoi entre Services": [
+      "Suivi de dossier : Renvoi entre Services"
   ],
   "Service : Communication : Interlocuteurs Impersonnels": [
       "Service : Communication : Interlocuteurs Impersonnels"
   ],
-  "Amende : Problème de Communication et de Traitement des Dossiers": [
-      "Amende : Problème de Communication et de Traitement des Dossiers"
+  "Amende : Problème de Communication et de Traitement des dossiers": [
+      "Amende : Problème de Communication et de Traitement des dossiers"
   ]
 }}
 
@@ -545,49 +544,65 @@ New Topics:
 
 "Fonctionnement du Site : Service en Panne"
 "Complexité Administrative : Déclaration de Travaux"
-"Suivi de Dossier : Retraite Progressive - Montant Incorrect et Manque de Communication"
+"Suivi de dossier : Retraite Progressive - Montant Incorrect et Manque de Communication"
 
 Existing Topics:
 
-"Site Internet : Disponibilité du service"
+"Site internet : Disponibilité du service"
 "Suivi de dossier : Complexité des Déclarations"
-"Erreur Retraite : Montant Incorrect"
+"Erreur retraite : Montant Incorrect"
 
 Your output might look like this:
 {{
-    "Fonctionnement du Site : Service en Panne": "Site Internet : Disponibilité du service",
-    "Complexité Administrative : Déclaration de Travaux": "Suivi de dossier : Complexité des Déclarations",
-    "Suivi de Dossier : Retraite Progressive - Montant Incorrect et Manque de Communication": "Erreur Retraite : Montant Incorrect"
+    "Fonctionnement du site : Service en panne": "Site internet : Disponibilité du service",
+    "Complexité administrative : Déclaration de travaux": "Suivi de dossier : Complexité des déclarations",
+    "Suivi de dossier : Retraite progressive - Montant incorrect et manque de communication": "Erreur retraite : Montant incorrect"
 }}
 """
 
 
 PROMPT_GENERATE_TOPICS = """
-My goal is to build a dashboard with some graph for my client : {brand_description}
+**Context**:
 
-I extracted some subjects about feedbacks they gave me.
-I want to create more profesionnal topics for graph in my dashboard
+Your goal is to take raw feedback subjects, which are often detailed or complaint-focused, and transform them into structured, professional, and neutral topics that are more appropriate for visual representation in dashboards. These topics need to reflect the client's industry and be organized in a clear hierarchy.
+{brand_description} The topics should be generated in {language}.
 
-I will give you the list of the subjects. Generate the topics in a python list
+**Instructions**:
 
-- A topic can have two level : 
-Example : "Service client : Réactivité aux demandes"
-- A topic have to be neutral.
-Example of wrong topic : "Service : Probleme avec les rendez-vous"
-Example of good topic: "Service : Gestions des rendez-vous"
-- Name of topics have to be adapted to the sector, and looks professional
-Example of wrong topic : "Service : comportement"
-Example of good topic: "Service : Écoute du service client"
-- try to not have a lot of unique level1, a level1 has to contains multiples level2
+1. **List of Subjects**: You will be provided with a list of raw feedback subjects.
+2. **Generate Topics**: Using the provided subjects, generate professional and neutral topics structured into two or three hierarchical levels:
+   - **Two Levels**: Example: "Service Client > Réactivité aux Demandes"
+   - **Three Levels**: Example: "Application Mobile > Expérience Utilisateur > Problèmes de Connexion"
+   - **Topic Structure**:
+     - **Level 1**: General domain (e.g., "Service Client", "Produits", "Application Mobile")
+     - **Level 2**: Sub-domain (e.g., "Réactivité", "Fonctionnalités", "Communication")
+     - **Level 3 and Beyond**: Specific details (e.g., "Disponibilité du Personnel", "Stabilité des Fonctionnalités")
+   - **Avoid Redundancy**: Ensure that similar topics are consolidated under the same Level 1 or Level 2 categories.
+   - **Neutrality**: Ensure topics are unbiased and neutral.
+     - **Incorrect**: "Service Client > Retards dans la Gestion des Rendez-vous"
+     - **Correct**: "Service Client > Gestion des Rendez-vous"
+   - **Industry-Specific Language**: Adapt terminology to reflect the client’s industry and create a professional tone. 
+     - **Incorrect**: "Qualité du Produit > Produits Défectueux"
+     - **Correct**: "Qualité du Produit > Durabilité et Performance des Produits"
+   - **Consolidation**: Ensure that multiple Level 2 and Level 3 topics are grouped under each Level 1 category to avoid too many Level 1 topics.
 
-Subjects:
-{subjects}
-
-Output format should be a json:
+**Output**:
+Your output might be a JSON object, with the structure like this :
 {{
-    "topics": ["topic1 : xxx", "topic2 : xxx", "topic3 : xxx", ...]
+  "topics": [
+    "Assistance > Clarté des informations",
+    "Assistance > Qualité des informations,
+    "Assistance > Personnel : Amabilité",
+    "Site internet : Disponibilité du service",
+    ...
+  ]
 }}
-"""
+
+**Input**:
+- List of Subjects: 
+{subjects}"""
+
+
 
 PROMPT_CLASSIFY_MAPPING = """
 The goal is to classify my subject into a specific topic

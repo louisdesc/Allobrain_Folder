@@ -9,19 +9,8 @@ from tqdm import tqdm
 import json
 
 from utils.request_utils import request_llm, get_embedding
-from utils.all_utils import evaluate_object
-from utils.topics_utils import classify_elementary_subject
 
 from utils.database import (
-    get_elementary_subjects,
-    remove_elementary_subject_from_mongo,
-    push_new_elementary_subject_to_mongo,
-    get_one_elementary_subject,
-    get_one_topic,
-    get_one_classification_scheme,
-    get_all_classification_schemes,
-    update_feedback_in_mongo,
-    get_feedbacks_with_extractions,
     get_field_value
 )
 
@@ -33,7 +22,166 @@ from utils.prompts import (
     PROMPT_MAP_TO_EXISTING_TOPICS
 )
 
+"""  - - - - - - - - - - - - - - - - -
+            A N A L Y S I S
+ - - - - - - - - - - - - - - - - - """
 
+def generate_brand_context(ligne):
+    # Fonction interne pour gérer les valeurs manquantes
+    def extraire_champ(champ, allow_empty=False):
+        return champ if pd.notnull(champ) and (allow_empty or champ != 'N/A') else None
+
+    # Champs obligatoires et facultatifs
+    champs = [
+        ("Intitulé Structure 1", ligne.get("intitule_structure_1"), False),
+        ("Intitulé Structure 2", ligne.get("intitule_structure_2"), True),
+        ("Tags Métiers", ligne.get("tags_metiers"), True),
+        ("Pays de la demande", ligne.get("pays"), False),
+        ("\n**Full feedback**", ligne.get("verbatims"), False),
+    ]
+    
+    # Initialisation des lignes avec une phrase fixe
+    lignes = ["Feedbacks are from French public services."]
+    
+    # Génération des lignes dynamiques si les champs sont présents
+    for label, champ, allow_empty in champs:
+        valeur = extraire_champ(champ, allow_empty)
+        if valeur:
+            lignes.append(f"{label}: {valeur}")
+    
+    # Retour du résultat formaté
+    return "\n".join(lignes)
+
+def find_closest_elementary_subjects(
+    extraction_text: str, 
+    subject_names: List[str], 
+    subject_embeddings: List[List[float]], 
+    top_n: int = 5,
+    model: str = "text-embedding-3-large"
+) -> List[str]:
+    """
+    Retrieve the top_n closest elementary subjects to a given extraction text based on cosine similarity of their embeddings.
+
+    Parameters:
+    - extraction_text (str): The extraction text for which we want to find the closest elementary subjects.
+    - subject_names (List[str]): A list of elementary subject names corresponding to the embeddings.
+    - subject_embeddings (List[List[float]]): A list of embeddings for the elementary subjects, where each embedding is a list of floats.
+    - top_n (int): The number of closest subjects to return. Defaults to 5.
+
+    Returns:
+    - List[str]: A list of the top_n closest elementary subject names. If no subjects are provided, returns an empty list.
+    """
+    if not subject_names:
+        return []
+    try:
+        # Use the stored embeddings directly
+        subject_embeddings = np.array(subject_embeddings)
+
+        # Embed the extraction text
+        extraction_embedding = np.array(get_embedding([extraction_text], model=model)).reshape(1, -1)
+
+        # Compute cosine distances
+        distances = distance.cdist(subject_embeddings, extraction_embedding, metric='cosine').flatten()
+
+        # Get the indices of the top_n closest subjects
+        closest_subjects = [subject_names[i] for i in distances.argsort()[:top_n]]
+
+        return closest_subjects
+    except Exception as e:
+        print(f"Error in find_closest_elementary_subjects: {e} - {subject_names}")
+        return []
+
+# =========
+    
+def get_elementary_subjects_for_part_of_feedback(
+    extractions: Dict,
+    language: str,
+    brand_name: str,
+    brand_context: str,
+    model: str,
+    existing_subjects_by_sentiment: Dict[str, List[Dict]]
+) -> Tuple[Dict[str, Any]]:
+    """
+    Classify a given text extraction and identify associated topics.
+
+    This function retrieves elementary subjects related to a specified brand and category
+    from pre-fetched data, finds the closest subjects based on their embeddings, and sends
+    a request to a language model for classification.
+
+    Parameters:
+    - extractions (Dict): The extraction data containing 'sentiment', 'extraction', and 'text'.
+    - language (str): The language in which the extraction is written.
+    - brand_name (str): The name of the brand associated with the extraction.
+    - brand_context (str): Context of the brand.
+    - model (str): The model to use for classification.
+    - existing_subjects_by_sentiment (Dict[str, List[Dict]]): Pre-fetched elementary subjects.
+
+    Returns:
+    - Tuple[Dict[str, Any], List[str]]: Updated extraction and list of identified topics.
+    """
+
+    extraction_sentiment = extractions['sentiment']
+    extraction_subjects = extractions['extraction']
+    extraction_text = extractions['text']
+
+    # Retrieve pre-fetched elementary subjects
+    elementary_subjects = existing_subjects_by_sentiment.get(extraction_sentiment, [])
+    if not elementary_subjects:
+        print(f"No elementary subjects found for sentiment '{extraction_sentiment}'.")
+        elementary_subjects = []
+
+    mongo_subject_names = [subject["elementary_subject"] for subject in elementary_subjects]
+    mongo_subject_embeddings = [subject["embeddings"] for subject in elementary_subjects]
+
+    # Find the closest subjects based on embeddings similarity
+    closest_subjects = find_closest_elementary_subjects(
+        extraction_subjects,
+        mongo_subject_names,
+        mongo_subject_embeddings,
+        top_n = 10,
+    )
+
+
+    messages = (
+        [{"role": "user", "content": PROMPT_CLASSIF}]
+        + CLASSIF_EXAMPLES
+        + [
+            {
+                "role": "user",
+                "content": PROMPT_FEEDBACK_TEMPLATE.format(
+                    brand_context=brand_context,
+                    extraction_sentiment=extraction_sentiment,
+                    extraction_text=extraction_text,
+                    closest_subjects=closest_subjects,
+                    language=language,
+                ),
+            }
+        ]
+    )
+
+    try:
+        response = request_llm(messages, model=model)
+        response_data = json.loads(response)
+
+        new_topic = response_data.get("new_topic", [])
+        if new_topic:
+            topics = new_topic
+            is_new_topic = True
+        else:
+            topics = response_data.get("topics", [])
+            is_new_topic = False
+
+        extractions['elementary_subjects'] = topics
+        extractions['is_new_topic'] = is_new_topic
+        return extractions
+
+    except Exception as e:
+        logging.error(f"Error in classify_extraction_with_topics: {e}")  # Log the error
+        return {
+            "topics": [],
+            "error": str(e),
+        }
+    
 """  - - - - - - - - - - - - - - - - -
          D U P L I C A T E S
  - - - - - - - - - - - - - - - - - """
@@ -171,165 +319,7 @@ def map_topics_to_existing(new_topics: List[str], existing_topics: List[str]) ->
 
 
 
-"""  - - - - - - - - - - - - - - - - -
-            A N A L Y S I S
- - - - - - - - - - - - - - - - - - """
 
-def generate_brand_context(ligne):
-    # Fonction interne pour gérer les valeurs manquantes
-    def extraire_champ(champ, allow_empty=False):
-        return champ if pd.notnull(champ) and (allow_empty or champ != 'N/A') else None
-
-    # Champs obligatoires et facultatifs
-    champs = [
-        ("Intitulé Structure 1", ligne.get("intitule_structure_1"), False),
-        ("Intitulé Structure 2", ligne.get("intitule_structure_2"), True),
-        ("Tags Métiers", ligne.get("tags_metiers"), True),
-        ("Pays de la demande", ligne.get("pays"), False),
-        ("\n**Full feedback**", ligne.get("verbatims"), False),
-    ]
-    
-    # Initialisation des lignes avec une phrase fixe
-    lignes = ["Feedbacks are from French public services."]
-    
-    # Génération des lignes dynamiques si les champs sont présents
-    for label, champ, allow_empty in champs:
-        valeur = extraire_champ(champ, allow_empty)
-        if valeur:
-            lignes.append(f"{label}: {valeur}")
-    
-    # Retour du résultat formaté
-    return "\n".join(lignes)
-
-def find_closest_elementary_subjects(
-    extraction_text: str, 
-    subject_names: List[str], 
-    subject_embeddings: List[List[float]], 
-    top_n: int = 5,
-    model: str = "text-embedding-3-large"
-) -> List[str]:
-    """
-    Retrieve the top_n closest elementary subjects to a given extraction text based on cosine similarity of their embeddings.
-
-    Parameters:
-    - extraction_text (str): The extraction text for which we want to find the closest elementary subjects.
-    - subject_names (List[str]): A list of elementary subject names corresponding to the embeddings.
-    - subject_embeddings (List[List[float]]): A list of embeddings for the elementary subjects, where each embedding is a list of floats.
-    - top_n (int): The number of closest subjects to return. Defaults to 5.
-
-    Returns:
-    - List[str]: A list of the top_n closest elementary subject names. If no subjects are provided, returns an empty list.
-    """
-    if not subject_names:
-        return []
-    try:
-        # Use the stored embeddings directly
-        subject_embeddings = np.array(subject_embeddings)
-
-        # Embed the extraction text
-        extraction_embedding = np.array(get_embedding([extraction_text], model=model)).reshape(1, -1)
-
-        # Compute cosine distances
-        distances = distance.cdist(subject_embeddings, extraction_embedding, metric='cosine').flatten()
-
-        # Get the indices of the top_n closest subjects
-        closest_subjects = [subject_names[i] for i in distances.argsort()[:top_n]]
-
-        return closest_subjects
-    except Exception as e:
-        print(f"Error in find_closest_elementary_subjects: {e} - {subject_names}")
-        return []
-
-# =========
-    
-def get_elementary_subjects_for_part_of_feedback(
-    extractions: Dict,
-    language: str,
-    brand_name: str,
-    brand_context: str,
-    model: str,
-    existing_subjects_by_sentiment: Dict[str, List[Dict]]
-) -> Tuple[Dict[str, Any]]:
-    """
-    Classify a given text extraction and identify associated topics.
-
-    This function retrieves elementary subjects related to a specified brand and category
-    from pre-fetched data, finds the closest subjects based on their embeddings, and sends
-    a request to a language model for classification.
-
-    Parameters:
-    - extractions (Dict): The extraction data containing 'sentiment', 'extraction', and 'text'.
-    - language (str): The language in which the extraction is written.
-    - brand_name (str): The name of the brand associated with the extraction.
-    - brand_context (str): Context of the brand.
-    - model (str): The model to use for classification.
-    - existing_subjects_by_sentiment (Dict[str, List[Dict]]): Pre-fetched elementary subjects.
-
-    Returns:
-    - Tuple[Dict[str, Any], List[str]]: Updated extraction and list of identified topics.
-    """
-
-    extraction_sentiment = extractions['sentiment']
-    extraction_subjects = extractions['extraction']
-    extraction_text = extractions['text']
-
-    # Retrieve pre-fetched elementary subjects
-    elementary_subjects = existing_subjects_by_sentiment.get(extraction_sentiment, [])
-    if not elementary_subjects:
-        print(f"No elementary subjects found for sentiment '{extraction_sentiment}'.")
-        return extractions, []
-
-    mongo_subject_names = [subject["elementary_subject"] for subject in elementary_subjects]
-    mongo_subject_embeddings = [subject["embeddings"] for subject in elementary_subjects]
-
-    # Find the closest subjects based on embeddings similarity
-    closest_subjects = find_closest_elementary_subjects(
-        extraction_subjects,
-        mongo_subject_names,
-        mongo_subject_embeddings,
-        top_n = 10,
-    )
-
-
-    messages = (
-        [{"role": "user", "content": PROMPT_CLASSIF}]
-        + CLASSIF_EXAMPLES
-        + [
-            {
-                "role": "user",
-                "content": PROMPT_FEEDBACK_TEMPLATE.format(
-                    brand_context=brand_context,
-                    extraction_sentiment=extraction_sentiment,
-                    extraction_text=extraction_text,
-                    closest_subjects=closest_subjects,
-                    language=language,
-                ),
-            }
-        ]
-    )
-
-    try:
-        response = request_llm(messages, model=model)
-        response_data = json.loads(response)
-
-        new_topic = response_data.get("new_topic")
-        if new_topic:
-            topics = [new_topic]
-            is_new_topic = True
-        else:
-            topics = response_data.get("topics", [])
-            is_new_topic = False
-
-        extractions['elementary_subjects'] = topics
-        extractions['is_new_topic'] = is_new_topic
-        return extractions
-
-    except Exception as e:
-        logging.error(f"Error in classify_extraction_with_topics: {e}")  # Log the error
-        return {
-            "topics": [],
-            "error": str(e),
-        }
         
 # =========
 
